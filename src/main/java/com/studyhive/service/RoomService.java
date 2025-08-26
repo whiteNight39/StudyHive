@@ -134,6 +134,14 @@ public class RoomService {
     }
 
     @Transactional
+    public BaseResponse<?> addMultipleUsersToRoom(List<UUID> addedUserIds, UUID roomId, UUID roomOwnerId) {
+        for (UUID addedUserId : addedUserIds) {
+            addUserToRoom(addedUserId, roomId, roomOwnerId);
+        }
+        return new BaseResponse("00", "All users added to room successfully", null);
+    }
+
+    @Transactional
     public BaseResponse joinRoom(UUID userId, UUID roomId) {
         if (roomId == null) throw new IllegalArgumentException("roomId cannot be null");
 
