@@ -35,7 +35,7 @@ It combines a lightweight room-based collaboration system with chat, file sharin
 
 ## 📐 Architecture
 
-[[Architecture Diagram](https://dbdiagram.io/api/file/68a03ede1d75ee360ad3aec2)](https://dbdiagram.io/d/68a03ede1d75ee360ad3aec2)
+[![Architecture Diagram](https://dbdiagram.io/api/file/68a03ede1d75ee360ad3aec2)](https://dbdiagram.io/d/68a03ede1d75ee360ad3aec2)
 ---
 
 ## 🚀 Getting Started
