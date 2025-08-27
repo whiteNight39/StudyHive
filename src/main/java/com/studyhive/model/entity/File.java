@@ -1,5 +1,6 @@
 package com.studyhive.model.entity;
 
+import com.studyhive.model.enums.FileType;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
@@ -19,22 +20,27 @@ public class File {
     @Column(name = "fileId", nullable = false, updatable = false)
     private UUID fileId;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fileRoomId", nullable = false)
-    private Room fileRoom;
+//    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+//    @JoinColumn(name = "fileRoomId", nullable = false)
+//    private Room fileRoom;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "fileUploadedBy", nullable = false)
     private User fileUploadedBy;
 
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "fileRoomId")
+    private Room fileRoom;
+
     @Column(name = "fileName", nullable = false)
     private String fileName;
 
-    @Column(name = "filePath", nullable = false)
-    private String filePath;
+    @Column(name = "fileUrl", nullable = false)
+    private String fileUrl;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "fileType")
-    private String fileType;
+    private FileType fileType;
 
     @Column(name = "fileStatus")
     private String fileStatus = "ACTIVE";

@@ -1,5 +1,7 @@
 package com.studyhive.model.entity;
 
+import com.studyhive.model.enums.FileType;
+import com.studyhive.model.enums.MessageType;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -32,14 +34,29 @@ public class Message {
     @JoinColumn(name = "messageRecipientId")
     private User messageRecipient; // FK → Receiver, optional
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "messageType", nullable = false)
-    private String messageType; // TEXT | FILE
+    private MessageType messageType; // TEXT | FILE
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "messageFileType", nullable = false)
+    private FileType messageFileType; // TEXT | FILE
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "messageReplyingToId")
+    private Message messageReplyingTo;
 
     @Column(name = "messageText", columnDefinition = "text")
     private String messageText;
 
     @Column(name = "messageFileUrl")
     private String messageFileUrl;
+
+    @Column(name = "messageFileName")
+    private String messageFileName;
+
+    @Column(name = "messageEdited", nullable = false)
+    private Boolean messageEdited = false;
 
     @Column(name = "messageStatus", nullable = false)
     private String messageStatus = "SENT"; // SENT | DELIVERED | READ
