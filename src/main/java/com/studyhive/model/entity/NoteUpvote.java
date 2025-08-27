@@ -31,6 +31,9 @@ public class NoteUpvote {
     @JoinColumn(name = "userId", nullable = false)
     private User noteUser;
 
+    @Column(name = "noteUpvoteStatus", nullable = false)
+    private String noteUpvoteStatus;
+
     @Column(name = "noteUpvoteCreatedAt", nullable = false)
     private Instant noteUpvoteCreatedAt;
 

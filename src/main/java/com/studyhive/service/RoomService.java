@@ -35,10 +35,10 @@ public class RoomService {
     public BaseResponse createRoom(RoomCreateRequest request, UUID userId) {
         if (request == null) throw new IllegalArgumentException("request cannot be null");
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("user not found"));
 
-        List<Room> userRooms = roomRepository.getByRoomCreatedBy(user);
+        List<Room> userRooms = roomRepository.getByRoomCreatedByAndRoomStatus(user, "ACTIVE");
         if (userRooms.size() >= user.getUserMaxRooms()) {
             throw new IllegalArgumentException("user rooms exceeds maximum");
         }
@@ -65,9 +65,9 @@ public class RoomService {
     public BaseResponse updateRoom(RoomUpdateRequest request, UUID userId) {
         if (request == null) throw new IllegalArgumentException("request cannot be null");
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("user not found"));
-        Room room = roomRepository.findById(request.getRoomId())
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(request.getRoomId(), "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("room not found"));
 
         Optional.ofNullable(request.getRoomName()).ifPresent(room::setRoomName);
@@ -82,15 +82,19 @@ public class RoomService {
         if (userId == null) throw new IllegalArgumentException("userId cannot be null");
         if (roomId == null) throw new IllegalArgumentException("roomId cannot be null");
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("user not found"));
-        Room room = roomRepository.findById(roomId)
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("room not found"));
 
-        roomRepository.delete(room);
+        roomRepository.deleteByRoomId(room.getRoomId());
 
-        List<Membership> membershipList = membershipRepository.getByMembershipRoom(room);
-        membershipRepository.deleteAll(membershipList);
+        List<UUID> membershipListIds = membershipRepository.getByMembershipRoomAndMembershipStatus(
+                room, "ACTIVE")
+                .stream()
+                .map(Membership::getMembershipId)   // extract the ID
+                .toList();                          // collect into a List (Java 16+);
+        membershipRepository.deleteAllByMembershipId(membershipListIds);
 
         return new BaseResponse("00", "Room deleted successfully", null);
     }
@@ -100,19 +104,25 @@ public class RoomService {
         if (addedUserId == null) throw new IllegalArgumentException("addedUserId cannot be null");
         if (roomId == null) throw new IllegalArgumentException("roomId cannot be null");
 
-        User addedUser = userRepository.findById(addedUserId)
+        User addedUser = userRepository.getByUserIdAndUserStatus(addedUserId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("user to be added not found"));
-        Room room = roomRepository.findById(roomId)
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("room not found"));
-        User roomOwner = userRepository.findById(roomOwnerId)
+        User roomOwner = userRepository.getByUserIdAndUserStatus(roomOwnerId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("room owner not found"));
 
-        Membership ownerMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, roomOwner)
+        Membership ownerMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                roomOwner,
+                "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("You are not a member of this room"));
         if (isNotOwnerOrAdmin(ownerMembership)) {
             throw new IllegalArgumentException("You do not have permission to add users from this room");
         }
-        Optional<Membership> existingMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, addedUser);
+        Optional<Membership> existingMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                addedUser,
+                "ACTIVE");
         if (existingMembership.isPresent()) {
             if (existingMembership.get().getMembershipStatus().equalsIgnoreCase("BANNED")) {
                 throw new IllegalArgumentException("This user has been previously banned. Unban this user before readding...");
@@ -145,15 +155,18 @@ public class RoomService {
     public BaseResponse joinRoom(UUID userId, UUID roomId) {
         if (roomId == null) throw new IllegalArgumentException("roomId cannot be null");
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("user not found"));
-        Room room = roomRepository.findById(roomId)
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("room not found"));
 
         if (room.getRoomPrivacy() != RoomPrivacy.OPEN) {
             throw new IllegalArgumentException("You shouldn't have been able to see this 🙂... You sneaky little...");
         }
-        Optional<Membership> existingMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, user);
+        Optional<Membership> existingMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                user,
+                "ACTIVE");
         if (existingMembership.isPresent()) {
             if (existingMembership.get().getMembershipStatus().equalsIgnoreCase("BANNED")) {
                 throw new IllegalArgumentException("You have been banned and can not rejoin this room...");
@@ -179,20 +192,26 @@ public class RoomService {
         if (removedUserId == null) throw new IllegalArgumentException("addedUserId cannot be null");
         if (roomId == null) throw new IllegalArgumentException("roomId cannot be null");
 
-        User removedUser = userRepository.findById(removedUserId)
+        User removedUser = userRepository.getByUserIdAndUserStatus(removedUserId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User to be removed not found"));
-        Room room = roomRepository.findById(roomId)
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("room not found"));
-        User roomOwner = userRepository.findById(roomOwnerId)
+        User roomOwner = userRepository.getByUserIdAndUserStatus(roomOwnerId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("Room owner not found"));
 
-        Membership ownerMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, roomOwner)
+        Membership ownerMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                roomOwner,
+                "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("You are not a member of this room"));
         if (isNotOwnerOrAdmin(ownerMembership)) {
             throw new IllegalArgumentException("You do not have permission to remove users from this room");
         }
 
-        Membership removedUserMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, removedUser)
+        Membership removedUserMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                removedUser,
+                "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User is not a member of this room"));
         if (removedUserMembership.getMembershipRoleInRoom() == RoleInRoom.OWNER) {
             throw new IllegalArgumentException("Cannot remove the room owner");
@@ -210,20 +229,26 @@ public class RoomService {
         if (kickedUserId == null) throw new IllegalArgumentException("addedUserId cannot be null");
         if (roomId == null) throw new IllegalArgumentException("roomId cannot be null");
 
-        User kickedUser = userRepository.findById(kickedUserId)
+        User kickedUser = userRepository.getByUserIdAndUserStatus(kickedUserId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User to be kicked not found"));
-        Room room = roomRepository.findById(roomId)
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId,  "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("room not found"));
-        User roomOwner = userRepository.findById(roomOwnerId)
+        User roomOwner = userRepository.getByUserIdAndUserStatus(roomOwnerId,  "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("Room owner not found"));
 
-        Membership ownerMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, roomOwner)
+        Membership ownerMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                roomOwner,
+                "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("You are not a member of this room"));
         if (isNotOwnerOrAdmin(ownerMembership)) {
             throw new IllegalArgumentException("You do not have permission to kick users from this room");
         }
 
-        Membership kickedUserMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, kickedUser)
+        Membership kickedUserMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                kickedUser,
+                "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User is not a member of this room"));
         if (kickedUserMembership.getMembershipRoleInRoom() == RoleInRoom.OWNER) {
             throw new IllegalArgumentException("Cannot kick the room owner");
@@ -244,20 +269,26 @@ public class RoomService {
         if (bannedUserId == null) throw new IllegalArgumentException("addedUserId cannot be null");
         if (roomId == null) throw new IllegalArgumentException("roomId cannot be null");
 
-        User bannedUser = userRepository.findById(bannedUserId)
+        User bannedUser = userRepository.getByUserIdAndUserStatus(bannedUserId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User to be banned not found"));
-        Room room = roomRepository.findById(roomId)
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("room not found"));
-        User roomOwner = userRepository.findById(roomOwnerId)
+        User roomOwner = userRepository.getByUserIdAndUserStatus(roomOwnerId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("Room owner not found"));
 
-        Membership ownerMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, roomOwner)
+        Membership ownerMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                roomOwner,
+                "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("You are not a member of this room"));
         if (isNotOwnerOrAdmin(ownerMembership)) {
             throw new IllegalArgumentException("You do not have permission to ban users from this room");
         }
 
-        Membership bannedUserMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, bannedUser)
+        Membership bannedUserMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                bannedUser,
+                "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User is not a member of this room"));
         if (bannedUserMembership.getMembershipRoleInRoom() == RoleInRoom.OWNER) {
             throw new IllegalArgumentException("Cannot ban the room owner");
@@ -278,20 +309,26 @@ public class RoomService {
         if (roomId == null) throw new IllegalArgumentException("roomId cannot be null");
         if (bannedUserId == null) throw new IllegalArgumentException("Banned userId cannot be null");
 
-        Room room = roomRepository.findById(roomId)
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("room not found"));
-        User bannedUser = userRepository.getByUserId(bannedUserId)
+        User bannedUser = userRepository.getByUserIdAndUserStatus(bannedUserId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("user to be unbanned not found"));
-        User roomOwner = userRepository.getByUserId(userId)
+        User roomOwner = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("Room owner not found"));
 
-        Membership ownerMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, roomOwner)
+        Membership ownerMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                roomOwner,
+                "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("You are not a member of this room"));
         if (isNotOwnerOrAdmin(ownerMembership)) {
             throw new IllegalArgumentException("You do not have permission to unban users from this room");
         }
 
-        Membership bannedUserMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, bannedUser)
+        Membership bannedUserMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                bannedUser,
+                "BANNED")
                 .orElseThrow(() -> new IllegalArgumentException("User is not a member of this room"));
         if (!bannedUserMembership.getMembershipStatus().equalsIgnoreCase("BANNED")) {
             throw new IllegalArgumentException("This user is not banned");
@@ -309,12 +346,15 @@ public class RoomService {
     public BaseResponse leaveRoom(UUID userId, UUID roomId) {
         if (roomId == null) throw new IllegalArgumentException("roomId cannot be null");
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("user not found"));
-        Room room = roomRepository.findById(roomId)
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("room not found"));
 
-        Membership userMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, user)
+        Membership userMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                user,
+                "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User is not a member of this room"));
         if (userMembership.getMembershipRoleInRoom() == RoleInRoom.OWNER) {
             throw new IllegalArgumentException("Cannot remove the room owner");
@@ -332,15 +372,18 @@ public class RoomService {
         if (userId == null) throw new IllegalArgumentException("userId cannot be null");
         if (roomId == null) throw new IllegalArgumentException("roomId cannot be null");
 
-        User targetUser = userRepository.findById(userId)
+        User targetUser = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("Target user not found"));
-        Room room = roomRepository.findById(roomId)
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("Room not found"));
-        User actingUser = userRepository.findById(roomOwnerId)
+        User actingUser = userRepository.getByUserIdAndUserStatus(roomOwnerId,  "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("Acting user not found"));
 
         // Validate acting user is OWNER of the room
-        Membership ownerMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, actingUser)
+        Membership ownerMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                actingUser,
+                "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("You are not a member of this room"));
         if (!ownerMembership.getMembershipRoleInRoom().equals(RoleInRoom.OWNER)) {
             throw new IllegalArgumentException("Only the room owner may assign/change roles");
@@ -352,7 +395,10 @@ public class RoomService {
         }
 
         // Get membership of the target user
-        Membership targetMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, targetUser)
+        Membership targetMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                targetUser,
+                "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("Target user is not a member of this room"));
 
         // If assigning OWNER role, demote current owner to MEMBER
@@ -378,10 +424,11 @@ public class RoomService {
     public BaseResponse getAllUsersInRoom(UUID roomId) {
         if (roomId == null) throw new IllegalArgumentException("roomId cannot be null");
 
-        Room room = roomRepository.findById(roomId)
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("room not found"));
 
-        List<Membership> membershipList = membershipRepository.getByMembershipRoom(room);
+        List<Membership> membershipList = membershipRepository.getByMembershipRoomAndMembershipStatus(
+                room, "ACTIVE");
 
         List<RoomMembershipListResponse> roomMembershipListResponseList = new ArrayList<>();
         for (Membership membership : membershipList) {
@@ -399,13 +446,16 @@ public class RoomService {
     public BaseResponse getBannedUsersInRoom(UUID roomId, UUID userId) {
         if (roomId == null) throw new IllegalArgumentException("roomId cannot be null");
 
-        Room room = roomRepository.findById(roomId)
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("room not found"));
-        User user = userRepository.getByUserId(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         List<Membership> bannedMembersList = membershipRepository.getByMembershipRoomAndMembershipStatus(room, "BANNED");
-        Membership ownerMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, user)
+        Membership ownerMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                user,
+                "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("You are not a member of this room"));
         if (isNotOwnerOrAdmin(ownerMembership)) {
             throw new IllegalArgumentException("You do not have permission to view banned users");
@@ -429,12 +479,15 @@ public class RoomService {
         if (roomId == null) throw new IllegalArgumentException("roomId cannot be null");
         if (userId == null) throw new IllegalArgumentException("userId cannot be null");
 
-        Room room = roomRepository.findById(roomId)
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("room not found"));
-        User user = userRepository.findById(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("user not found"));
 
-        Membership userMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, user)
+        Membership userMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                user,
+                "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User is not a member of this room"));
 
         UserRoomProfileResponse  userRoomProfileResponse = UserRoomProfileResponse.builder()
@@ -447,18 +500,21 @@ public class RoomService {
     }
 
     public BaseResponse getAllRooms(UUID userId) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("user not found"));
 
         List<RoomPrivacy> nonOpenPrivacies = Arrays.asList(RoomPrivacy.CLOSED, RoomPrivacy.INVITE_ONLY);
 
-        List<Room> openRooms = roomRepository.getByRoomPrivacy(RoomPrivacy.OPEN);
-        List<Room> nonOpenRooms = roomRepository.findByRoomPrivacyIn(nonOpenPrivacies);
+        List<Room> openRooms = roomRepository.getByRoomPrivacyAndRoomStatus(RoomPrivacy.OPEN, "ACTIVE");
+        List<Room> nonOpenRooms = roomRepository.findByRoomPrivacyInAndRoomStatus(nonOpenPrivacies, "ACTIVE");
 
         List<Room> roomUserAllowedToSee = new ArrayList<>(openRooms);
 
         for (Room room : nonOpenRooms) {
-            Optional<Membership> membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, user);
+            Optional<Membership> membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                user,
+                "ACTIVE");
             if (membership.isPresent()) {
                 roomUserAllowedToSee.add(room);
             }
@@ -468,15 +524,18 @@ public class RoomService {
     }
 
     public BaseResponse viewRoom(UUID userId, UUID roomId) {
-        User user = userRepository.findById(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("user not found"));
-        Room room = roomRepository.findRoomByRoomId(roomId)
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("room not found"));
 
 //        List<RoomPrivacy> nonOpenPrivacies = Arrays.asList(RoomPrivacy.CLOSED, RoomPrivacy.INVITE_ONLY);
 
         if (room.getRoomPrivacy() != RoomPrivacy.OPEN) {
-            Membership membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, user)
+            Membership membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room,
+                user,
+                "ACTIVE")
                     .orElseThrow(() -> new IllegalArgumentException("User is not allowed to see the room"));
         }
 
