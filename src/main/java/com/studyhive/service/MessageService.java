@@ -48,11 +48,11 @@ public class MessageService {
 
         // Determine context
         if (request.getMessageRecipientId() != null) {
-            recipient = userRepository.findById(request.getMessageRecipientId())
+            recipient = userRepository.getByUserIdAndUserStatus(request.getMessageRecipientId(), "ACTIVE")
                     .orElseThrow(() -> new ApiException("44", "Recipient not found", null));
             roomMessage = false;
         } else if (request.getMessageRoomId() != null) {
-            room = roomRepository.findRoomByRoomId(request.getMessageRoomId())
+            room = roomRepository.findRoomByRoomIdAndRoomStatus(request.getMessageRoomId(), "ACTIVE")
                     .orElseThrow(() -> new ApiException("44", "Room not found", null));
             roomMessage = true;
         } else {
@@ -60,19 +60,21 @@ public class MessageService {
         }
 
         // Validate sender
-        User sender = userRepository.getByUserId(userId)
+        User sender = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "User not found", null));
 
         // Membership check only for room messages
         if (roomMessage) {
-            membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, sender)
+            membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                    room, sender, "ACTIVE")
                     .orElseThrow(() -> new ApiException("33", "Sender is not a member of this room", null));
         }
 
         // Handle replying to a previous message
         Message replyingTo = null;
         if (request.getMessageReplyingToId() != null) {
-            replyingTo = messageRepository.findById(request.getMessageReplyingToId())
+            replyingTo = messageRepository.findByMessageIdAndMessageStatus(
+                    request.getMessageReplyingToId(), "ACTIVE")
                     .orElseThrow(() -> new ApiException("44", "Replying-to message not found", null));
         }
 
@@ -109,10 +111,11 @@ public class MessageService {
     public BaseResponse<UUID> updateMessage(MessageUpdateRequest request, UUID userId) {
         if  (request == null) throw new ApiException("11", "Request is null", null);
 
-        User user = userRepository.getByUserId(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "User not found", null));
 
-        Message message = messageRepository.findById(request.getMessageId())
+        Message message = messageRepository.findByMessageIdAndMessageStatus(
+                request.getMessageId(), "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "Message not found", null));
 
         if (!message.getMessageSender().getUserId().equals(userId)) {
@@ -135,21 +138,24 @@ public class MessageService {
         boolean roomMessage = false;
         Room room = null;
 
-        User user = userRepository.getByUserId(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "User not found", null));
-        Message message = messageRepository.findById(messageId)
+        Message message = messageRepository.findByMessageIdAndMessageStatus(
+                messageId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "Message not found", null));
         User messageOwner = message.getMessageSender();
 
 //      Determine context
         if (message.getMessageRoom() != null) {
-            room = roomRepository.findRoomByRoomId(message.getMessageRoom().getRoomId())
+            room = roomRepository.findRoomByRoomIdAndRoomStatus(
+                    message.getMessageRoom().getRoomId(), "ACTIVE")
                     .orElseThrow(() -> new ApiException("44", "Room not found", null));
             roomMessage = true;
         }
 
         if (roomMessage) {
-            Membership membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, user)
+            Membership membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                    room, user, "ACTIVE")
                     .orElseThrow(() -> new ApiException("33", "Sender is not a member of this room", null));
 
             if (!messageOwner.getUserId().equals(userId)) {
@@ -162,7 +168,7 @@ public class MessageService {
         }
 
 
-        messageRepository.delete(message);
+        messageRepository.deleteByMessageId(message.getMessageId());
 
         return new BaseResponse<>("00", "Message deleted", message.getMessageId());
     }
