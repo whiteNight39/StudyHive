@@ -12,7 +12,9 @@ import java.util.UUID;
 @Repository
 public interface UserLoginJwtRepository extends JpaRepository<UserLoginJwt, UUID> {
 
-    @Query("SELECT u FROM UserLoginJwt u WHERE u.user.userId = :userId AND u.userLoginJwtDeviceIp = :deviceIp AND u.userLoginJwtUserAgent = :deviceUserAgent")
-    Optional<UserLoginJwt> findJwt(@Param("userId") UUID userId, @Param("deviceIp") String deviceIp, @Param("deviceUserAgent") String deviceUserAgent);
+    @Query("SELECT u FROM UserLoginJwt u WHERE u.user.userId = :userId AND u.userLoginJwtDeviceIp = :deviceIp AND u.userLoginJwtUserAgent = :deviceUserAgent AND u.userLoginJwtExpiresAt < CURRENT_TIMESTAMP")
+    Optional<UserLoginJwt> findJwt(@Param("userId") UUID userId,
+                                   @Param("deviceIp") String deviceIp,
+                                   @Param("deviceUserAgent") String deviceUserAgent);
 
 }

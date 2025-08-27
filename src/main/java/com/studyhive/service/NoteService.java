@@ -34,9 +34,9 @@ public class NoteService {
     public BaseResponse<?> createNoteInRoom(NoteCreateRequest request, UUID userId) {
         if (request == null) throw new ApiException("11", "Note create request is null", null);
 
-        Room noteRoom = roomRepository.findRoomByRoomId(request.getNoteRoomId())
+        Room noteRoom = roomRepository.findRoomByRoomIdAndRoomStatus(request.getNoteRoomId(), "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "Note room not found", null));
-        User noteUser = userRepository.findById(userId)
+        User noteUser = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "User not found", null));
         Membership noteUserMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(noteRoom, noteUser)
                 .orElseThrow(() -> new ApiException("44", "User is not a member of the room", null));
@@ -59,7 +59,7 @@ public class NoteService {
     public BaseResponse<?> updateNoteInRoom(NoteUpdateRequest request, UUID userId) {
         if (request == null) throw new ApiException("11", "Note update request is null", null);
 
-        Note note = noteRepository.findById(request.getNoteId())
+        Note note = noteRepository.findByNoteIdAndNoteStatus(request.getNoteId(), "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "Note not found", null));
 
         if (!note.getNoteCreatedBy().getUserId().equals(userId)) {
@@ -75,11 +75,11 @@ public class NoteService {
     public BaseResponse<?> deleteNoteInRoom(UUID userId, UUID noteId) {
         if (noteId == null) throw new ApiException("11", "Note id is null", null);
 
-        Note note = noteRepository.findById(noteId)
+        Note note = noteRepository.findByNoteIdAndNoteStatus(noteId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "Note not found", null));
-        User user = userRepository.findById(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "User not found", null));
-        User noteOwner = userRepository.findById(note.getNoteCreatedBy().getUserId())
+        User noteOwner = userRepository.getByUserIdAndUserStatus(note.getNoteCreatedBy().getUserId(), "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "User not found", null));
         Membership membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(note.getNoteRoom(), user)
                 .orElseThrow(() -> new ApiException("33", "User is not a member of the room", null));
@@ -94,22 +94,22 @@ public class NoteService {
             userRepository.save(noteOwner);
         }
 
-        noteRepository.delete(note);
+        noteRepository.deleteByNoteId(note.getNoteId());
         return new BaseResponse<>("00", "Note deleted successfully", null);
     }
 
     public BaseResponse<List<NoteResponse>> getAllNoteInRoom(UUID userId, UUID roomId) {
         if (roomId == null) throw new ApiException("11", "Room id is null", null);
 
-        Room room = roomRepository.findRoomByRoomId(roomId)
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "Room not found", null));
-        User user = userRepository.getByUserId(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "User not found", null));
         Membership membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, user)
                 .orElseThrow(() -> new ApiException("33", "User is not a member of the room", null));
 
         List<NoteResponse> noteResponses = new ArrayList<>();
-        List<Note> notes = noteRepository.findByNoteRoom(room);
+        List<Note> notes = noteRepository.findByNoteRoomAndNoteStatus(room, "ACTIVE");
 
         for (Note note : notes) {
             NoteResponse noteResponse = NoteResponse.builder()
@@ -127,11 +127,11 @@ public class NoteService {
         if (roomId == null) throw new ApiException("11", "Room id is null", null);
         if (noteId == null) throw new ApiException("11", "Note id is null", null);
 
-        Room room = roomRepository.findRoomByRoomId(roomId)
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "Room not found", null));
-        User user = userRepository.findById(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "User not found", null));
-        Note note = noteRepository.findById(noteId)
+        Note note = noteRepository.findByNoteIdAndNoteStatus(noteId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "Note not found", null));
         if (!note.getNoteRoom().equals(room))
             throw new ApiException("11", "This note doesn't belong to this room", null);
@@ -153,18 +153,18 @@ public class NoteService {
         if (roomId == null) throw new ApiException("11", "Room id is null", null);
         if (noteId == null) throw new ApiException("11", "Note id is null", null);
 
-        Room room = roomRepository.findRoomByRoomId(roomId)
+        Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "Room not found", null));
-        User user = userRepository.findById(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "User not found", null));
-        Note note = noteRepository.findById(noteId)
+        Note note = noteRepository.findByNoteIdAndNoteStatus(noteId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "Note not found", null));
         if (!note.getNoteRoom().equals(room))
             throw new ApiException("11", "This note doesn't belong to this room", null);
         Membership membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, user)
                 .orElseThrow(() -> new ApiException("33", "User is not a member of the room", null));
 
-        NoteUpvote noteUpvotedByUser = noteUpvoteRepository.findByNoteAndNoteUser(note, user)
+        NoteUpvote noteUpvotedByUser = noteUpvoteRepository.findByNoteAndNoteUserAndNoteUpvoteStatus(note, user, "ACTIVE")
                 .orElse(null);
 
         if (!(noteUpvotedByUser == null)) {
@@ -174,7 +174,7 @@ public class NoteService {
             user.setUserCreditScore(user.getUserCreditScore() - 2); // keep balance
             userRepository.save(user);
 
-            noteUpvoteRepository.delete(noteUpvotedByUser);
+            noteUpvoteRepository.deleteByNoteUpvoteId(noteUpvotedByUser.getNoteUpvoteId());
             return new BaseResponse<>("00", "Upvote removed",
                     Map.of("upvotes", note.getNoteUpvotes(), "userHasUpvoted", false));
         }
