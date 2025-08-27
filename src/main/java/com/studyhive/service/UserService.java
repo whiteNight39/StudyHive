@@ -63,7 +63,7 @@ public class UserService {
         if (request == null)
             throw new IllegalArgumentException("request cannot be null");
 
-        Optional<User> existingUser = userRepository.getByUserEmail(request.getUserEmail());
+        Optional<User> existingUser = userRepository.getByUserEmailAndUserStatus(request.getUserEmail(), "ACTIVE");
         if (existingUser.isPresent()) {
             throw new IllegalArgumentException("user already exists");
         }
@@ -111,7 +111,10 @@ public class UserService {
         boolean foundMatchingOtp = false;
         boolean otpIsValid =  false;
 
-        List<UserOtp> userOtps = userOtpRepository.findByUserOtpUserEmailAndUserOtpReasonOrderByUserOtpCreatedAtDesc(request.getUserEmail(), "ENROLLMENT");
+        List<UserOtp> userOtps = userOtpRepository.findByUserOtpUserEmailAndUserOtpReasonAndUserOtpStatusOrderByUserOtpCreatedAtDesc(
+                request.getUserEmail(),
+                "ENROLLMENT",
+                "ACTIVE");
         if (userOtps.isEmpty())
             throw new IllegalArgumentException("User has not initiated enrollment");
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
@@ -127,7 +130,7 @@ public class UserService {
                     continue;
                 }
 
-                User user = userRepository.getByUserEmail(request.getUserEmail())
+                User user = userRepository.getByUserEmailAndUserStatus(request.getUserEmail(), "ACTIVE")
                                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
                 user.setUserStatus("ACTIVE");
                 userRepository.save(user);
@@ -150,8 +153,8 @@ public class UserService {
         if (request == null)
             throw new IllegalArgumentException("request cannot be null");
 
-        Optional<User> userByEmail = userRepository.getByUserEmail(request.getUserEmail());
-        Optional<User> userByUsername = userRepository.getByUserName(request.getUserName());
+        Optional<User> userByEmail = userRepository.getByUserEmailAndUserStatus(request.getUserEmail(), "ACTIVE");
+        Optional<User> userByUsername = userRepository.getByUserNameAndUserStatus(request.getUserName(),  "ACTIVE");
 
         User user = userByEmail.or(() -> userByUsername)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid username and/or password"));
@@ -189,12 +192,12 @@ public class UserService {
         if (request == null)
             throw new IllegalArgumentException("request cannot be null");
 
-        userRepository.getByUserName(request.getUserName())
+        userRepository.getByUserNameAndUserStatus(request.getUserName(), "ACTIVE")
                 .ifPresent(user -> {
                     throw new IllegalArgumentException("Username already in use");
                 });
 
-        User user = userRepository.getByUserEmail(request.getUserEmail())
+        User user = userRepository.getByUserEmailAndUserStatus(request.getUserEmail(),  "ACTIVE")
                         .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + request.getUserEmail()));
 
         if (user.getUserName() != null) {
@@ -214,7 +217,7 @@ public class UserService {
         if (request == null)
             throw new IllegalArgumentException("request cannot be null");
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         // Check if username is being updated
@@ -239,7 +242,7 @@ public class UserService {
         if (request == null)
             throw new IllegalArgumentException("request cannot be null");
 
-        User user = userRepository.findById(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
@@ -262,7 +265,7 @@ public class UserService {
         if (request == null)
             throw new IllegalArgumentException("request cannot be null");
 
-        User user = userRepository.getByUserEmail(request.getUserEmail())
+        User user = userRepository.getByUserEmailAndUserStatus(request.getUserEmail(), "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
@@ -290,7 +293,10 @@ public class UserService {
         if (request == null)
             throw new IllegalArgumentException("request cannot be null");
 
-        List<UserOtp> userOtps = userOtpRepository.findByUserOtpUserEmailAndUserOtpReasonOrderByUserOtpCreatedAtDesc(request.getUserEmail(), "PASSWORD_RESET");
+        List<UserOtp> userOtps = userOtpRepository.findByUserOtpUserEmailAndUserOtpReasonAndUserOtpStatusOrderByUserOtpCreatedAtDesc(
+                request.getUserEmail(),
+                "PASSWORD_RESET",
+                "ACTIVE");
         if (userOtps.isEmpty())
             throw new IllegalArgumentException("User has not initiated password reset");
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
@@ -310,7 +316,7 @@ public class UserService {
                     continue;
                 }
 
-                User user = userRepository.getByUserEmail(request.getUserEmail())
+                User user = userRepository.getByUserEmailAndUserStatus(request.getUserEmail(), "ACTIVE")
                         .orElseThrow(() -> new IllegalArgumentException("User not found"));
                 user.setUserPassword(hashedNewPassword);
                 userRepository.save(user);
@@ -334,11 +340,10 @@ public class UserService {
         if (userId == null)
             throw new IllegalArgumentException("userId cannot be null");
 
-        User user = userRepository.getByUserId(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        user.setUserStatus("DELETED");
-        userRepository.save(user);
+        userRepository.deleteByUserId(userId);
 
         return new BaseResponse("00","User deactivated successfully", null);
     }
@@ -347,7 +352,7 @@ public class UserService {
         if (userId == null)
             throw new IllegalArgumentException("userId cannot be null");
 
-        User user = userRepository.getByUserId(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         List<UserProfileResponses> responses = userRepository.userProfiles(userId);
@@ -372,7 +377,7 @@ public class UserService {
         if (searchQuery == null)
             throw new IllegalArgumentException("searchQuery cannot be null");
 
-        User user = userRepository.getByUserId(userId)
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         List<User> users = userRepository.searchUsersByUserName(searchQuery);
@@ -393,9 +398,9 @@ public class UserService {
         }
 
         // Only fetch viewer if necessary (for permissions)
-        userRepository.getByUserId(viewerUserId)
+        userRepository.getByUserIdAndUserStatus(viewerUserId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("Viewer not found"));
-        User vieweeUser = userRepository.getByUserId(vieweeUserId)
+        User vieweeUser = userRepository.getByUserIdAndUserStatus(vieweeUserId,  "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User to view not found"));
 
         List<UserGlobalProfileResponses> responses = userRepository.userGlobalProfiles(vieweeUserId);
