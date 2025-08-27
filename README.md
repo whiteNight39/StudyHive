@@ -54,7 +54,7 @@ cd StudyHive-BE
 ./mvnw spring-boot:run
 ```
 
-### 4. Environment Variables
+### 3. Environment Variables
 
 Create a `.env` file in both frontend and backend directories with:
 
