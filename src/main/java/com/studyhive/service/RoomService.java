@@ -421,11 +421,18 @@ public class RoomService {
         return new BaseResponse("00", "User role updated successfully", null);
     }
 
-    public BaseResponse getAllUsersInRoom(UUID roomId) {
+    public BaseResponse getAllUsersInRoom(UUID roomId, UUID userId) {
         if (roomId == null) throw new IllegalArgumentException("roomId cannot be null");
 
         Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("room not found"));
+
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
+                .orElseThrow(() -> new IllegalArgumentException("user not found"));
+
+        Membership userMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room, user, "ACTIVE")
+                .orElseThrow(() -> new IllegalArgumentException("You are not a member of this room"));
 
         List<Membership> membershipList = membershipRepository.getByMembershipRoomAndMembershipStatus(
                 room, "ACTIVE");
@@ -453,9 +460,7 @@ public class RoomService {
 
         List<Membership> bannedMembersList = membershipRepository.getByMembershipRoomAndMembershipStatus(room, "BANNED");
         Membership ownerMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
-                room,
-                user,
-                "ACTIVE")
+                room, user, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("You are not a member of this room"));
         if (isNotOwnerOrAdmin(ownerMembership)) {
             throw new IllegalArgumentException("You do not have permission to view banned users");
@@ -475,25 +480,28 @@ public class RoomService {
         return new BaseResponse("00", "Banned Members List", roomMembershipListResponseList);
     }
 
-    public BaseResponse viewUserRoomProfile(UUID roomId, UUID userId) {
+    public BaseResponse viewUserRoomProfile(UUID roomId, UUID viewedUserId, UUID viewerUserId) {
         if (roomId == null) throw new IllegalArgumentException("roomId cannot be null");
-        if (userId == null) throw new IllegalArgumentException("userId cannot be null");
+        if (viewedUserId == null) throw new IllegalArgumentException("userId cannot be null");
 
         Room room = roomRepository.findRoomByRoomIdAndRoomStatus(roomId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("room not found"));
-        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
+        User viewedUser = userRepository.getByUserIdAndUserStatus(viewedUserId, "ACTIVE")
+                .orElseThrow(() -> new IllegalArgumentException("user not found"));
+        User viewerUser = userRepository.getByUserIdAndUserStatus(viewerUserId, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("user not found"));
 
-        Membership userMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
-                room,
-                user,
-                "ACTIVE")
+        Membership viewedUserMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room, viewedUser, "ACTIVE")
+                .orElseThrow(() -> new IllegalArgumentException("User is not a member of this room"));
+        Membership viewerUserMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room, viewerUser, "ACTIVE")
                 .orElseThrow(() -> new IllegalArgumentException("User is not a member of this room"));
 
         UserRoomProfileResponse  userRoomProfileResponse = UserRoomProfileResponse.builder()
-                .userId(userId)
-                .userName(user.getUserName())
-                .userRoleInRoom(userMembership.getMembershipRoleInRoom())
+                .userId(viewedUserId)
+                .userName(viewedUser.getUserName())
+                .userRoleInRoom(viewedUserMembership.getMembershipRoleInRoom())
                 .build();
 
         return new BaseResponse("00", "User room profile", userRoomProfileResponse);
