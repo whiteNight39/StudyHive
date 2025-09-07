@@ -99,7 +99,7 @@ public class UserController {
         return userService.completePasswordReset(request);
     }
 
-    @PatchMapping("/deactivate-user-account")
+    @DeleteMapping("/deactivate-user-account")
     public BaseResponse<?> deactivateUserAccount() {
 
         CustomUserPrincipal principal = (CustomUserPrincipal) SecurityContextHolder
