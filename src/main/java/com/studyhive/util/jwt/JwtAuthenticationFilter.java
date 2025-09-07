@@ -1,5 +1,7 @@
 package com.studyhive.util.jwt;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.studyhive.model.response.BaseResponse;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -51,15 +53,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             } catch (io.jsonwebtoken.ExpiredJwtException ex) {
-                // Token is expired
                 logger.warn("JWT expired at: " + ex.getClaims().getExpiration());
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("JWT expired at: " + ex.getClaims().getExpiration());
-                return; // stop filter chain here (request rejected)
+                response.setContentType("application/json");
+                BaseResponse<?> error = new BaseResponse<>("33", "Authentication failed", "JWT expired at: " + ex.getClaims().getExpiration());
+                response.getWriter().write(new ObjectMapper().writeValueAsString(error));
+                return;
             } catch (Exception e) {
                 logger.warn("JWT error: " + e.getMessage());
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                response.getWriter().write("Invalid JWT: " + e.getMessage());
+                response.setContentType("application/json");
+                BaseResponse<?> error = new BaseResponse<>("33", "Authentication failed", "Invalid JWT: " + e.getMessage());
+                response.getWriter().write(new ObjectMapper().writeValueAsString(error));
                 return;
             }
         }
