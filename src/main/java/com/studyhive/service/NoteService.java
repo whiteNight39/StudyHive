@@ -38,7 +38,8 @@ public class NoteService {
                 .orElseThrow(() -> new ApiException("44", "Note room not found", null));
         User noteUser = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "User not found", null));
-        Membership noteUserMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(noteRoom, noteUser)
+        Membership noteUserMembership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                noteRoom, noteUser, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "User is not a member of the room", null));
 
         Note note = Note.builder()
@@ -81,7 +82,8 @@ public class NoteService {
                 .orElseThrow(() -> new ApiException("44", "User not found", null));
         User noteOwner = userRepository.getByUserIdAndUserStatus(note.getNoteCreatedBy().getUserId(), "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "User not found", null));
-        Membership membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(note.getNoteRoom(), user)
+        Membership membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                note.getNoteRoom(), user, "ACTIVE")
                 .orElseThrow(() -> new ApiException("33", "User is not a member of the room", null));
 
         if (!note.getNoteCreatedBy().getUserId().equals(userId)) {
@@ -105,7 +107,8 @@ public class NoteService {
                 .orElseThrow(() -> new ApiException("44", "Room not found", null));
         User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
                 .orElseThrow(() -> new ApiException("44", "User not found", null));
-        Membership membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, user)
+        Membership membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room, user, "ACTIVE")
                 .orElseThrow(() -> new ApiException("33", "User is not a member of the room", null));
 
         List<NoteResponse> noteResponses = new ArrayList<>();
@@ -135,7 +138,8 @@ public class NoteService {
                 .orElseThrow(() -> new ApiException("44", "Note not found", null));
         if (!note.getNoteRoom().equals(room))
             throw new ApiException("11", "This note doesn't belong to this room", null);
-        Membership membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, user)
+        Membership membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room, user, "ACTIVE")
                 .orElseThrow(() -> new ApiException("33", "User is not a member of the room", null));
 
         NoteResponse noteResponse = NoteResponse.builder()
@@ -161,7 +165,8 @@ public class NoteService {
                 .orElseThrow(() -> new ApiException("44", "Note not found", null));
         if (!note.getNoteRoom().equals(room))
             throw new ApiException("11", "This note doesn't belong to this room", null);
-        Membership membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUser(room, user)
+        Membership membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
+                room, user, "ACTIVE")
                 .orElseThrow(() -> new ApiException("33", "User is not a member of the room", null));
 
         NoteUpvote noteUpvotedByUser = noteUpvoteRepository.findByNoteAndNoteUserAndNoteUpvoteStatus(note, user, "ACTIVE")
