@@ -114,7 +114,7 @@ public class MessageService {
     }
 
     @Transactional
-    public BaseResponse<UUID> updateMessage(MessageUpdateRequest request, UUID userId) {
+    public BaseResponse<Message> updateMessage(MessageUpdateRequest request, UUID userId) {
         if  (request == null) throw new ApiException("11", "Request is null", null);
 
         User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
@@ -134,7 +134,7 @@ public class MessageService {
         }
         messageRepository.save(message);
 
-        return new BaseResponse<>("00", "Message updated", message.getMessageId());
+        return new BaseResponse<>("00", "Message updated", message);
     }
 
     @Transactional
@@ -179,7 +179,7 @@ public class MessageService {
         return new BaseResponse<>("00", "Message deleted", message.getMessageId());
     }
 
-    public BaseResponse<?> viewMessage(UUID messageId, UUID userId) {
+    public BaseResponse<Message> viewMessage(UUID messageId, UUID userId) {
         if (messageId == null) throw new ApiException("11", "Message id is null", null);
 
         boolean roomMessage = false;
