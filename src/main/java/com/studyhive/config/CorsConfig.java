@@ -17,10 +17,10 @@ public class CorsConfig {
             public void addCorsMappings(@NotNull CorsRegistry registry) {
                 registry.addMapping("/**")
                         .allowedOrigins(
-//                                "http://127.0.0.1:5500",
-//                                "https://whitenightnotes.netlify.app",
-                                "https://localhost:8080"
-//                                "https://*.ngrok-free.app"
+                                "https://studyhive-5iel.onrender.com",
+                                "http://127.0.0.1:5500",
+                                "http://localhost:8080",
+                                "https://whitenightnotes.netlify.app"
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                         .allowedHeaders("*")

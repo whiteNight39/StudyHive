@@ -29,6 +29,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // ✅ Allow preflight
                         .requestMatchers(
+                                "/",
                                 "/auth/**",
                                 "/user/login-user",
                                 "/user/initiate-user-signup",
