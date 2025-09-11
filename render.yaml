@@ -1,10 +1,10 @@
-services:
-  - type: web
-    name: studyhive-backend
-    env: java
-    plan: free
-    buildCommand: ./gradlew bootJar
-    startCommand: java -jar build/libs/studyhive-0.0.1-SNAPSHOT.jar
-    envVars:
-      - key: SPRING_PROFILES_ACTIVE
-        value: prod
+#services:
+#  - type: web
+#    name: studyhive-backend
+#    env: java
+#    plan: free
+#    buildCommand: ./gradlew bootJar
+#    startCommand: java -jar build/libs/studyhive-0.0.1-SNAPSHOT.jar
+#    envVars:
+#      - key: SPRING_PROFILES_ACTIVE
+#        value: prod
