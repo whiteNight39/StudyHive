@@ -25,11 +25,11 @@ public class File {
 //    private Room fileRoom;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "fileUploadedBy", nullable = false)
+    @JoinColumn(name = "fileUploadedBy", referencedColumnName = "userId", nullable = false)
     private User fileUploadedBy;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
-    @JoinColumn(name = "fileRoomId")
+    @JoinColumn(name = "fileRoomId", referencedColumnName = "roomId")
     private Room fileRoom;
 
     @Column(name = "fileName", nullable = false)
@@ -42,6 +42,7 @@ public class File {
     @Column(name = "fileType")
     private FileType fileType;
 
+    @Builder.Default
     @Column(name = "fileStatus")
     private String fileStatus = "ACTIVE";
 

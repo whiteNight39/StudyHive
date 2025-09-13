@@ -21,7 +21,7 @@ public class UserLoginJwt {
     private UUID userLoginJwtId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "userLoginJwtUserId", nullable = false)
+    @JoinColumn(name = "userLoginJwtUserId", referencedColumnName = "userId", nullable = false)
     private User user;
 
     @Column(name = "userLoginJwtToken", nullable = false)

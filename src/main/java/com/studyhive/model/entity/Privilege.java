@@ -26,6 +26,7 @@ public class Privilege {
     @Column(name = "privilegeDescription")
     private String privilegeDescription;
 
+    @Builder.Default
     @Column(name = "privilegeStatus", nullable = false)
     private String privilegeStatus = "ACTIVE";
 

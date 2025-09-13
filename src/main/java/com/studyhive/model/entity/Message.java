@@ -23,15 +23,15 @@ public class Message {
     private UUID messageId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
-    @JoinColumn(name = "messageRoomId")
+    @JoinColumn(name = "messageRoomId", referencedColumnName = "roomId")
     private Room messageRoom; // FK → Room, optional
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "messageSenderId", nullable = false)
+    @JoinColumn(name = "messageSenderId", referencedColumnName = "userId", nullable = false)
     private User messageSender; // FK → Sender
 
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
-    @JoinColumn(name = "messageRecipientId")
+    @JoinColumn(name = "messageRecipientId", referencedColumnName = "userId")
     private User messageRecipient; // FK → Receiver, optional
 
     @Enumerated(EnumType.STRING)
@@ -43,7 +43,7 @@ public class Message {
     private FileType messageFileType; // TEXT | FILE
 
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
-    @JoinColumn(name = "messageReplyingToId")
+    @JoinColumn(name = "messageReplyingToId", referencedColumnName = "messageId")
     private Message messageReplyingTo;
 
     @Column(name = "messageText", columnDefinition = "text")
@@ -55,9 +55,11 @@ public class Message {
     @Column(name = "messageFileName")
     private String messageFileName;
 
+    @Builder.Default
     @Column(name = "messageEdited", nullable = false)
     private Boolean messageEdited = false;
 
+    @Builder.Default
     @Column(name = "messageStatus", nullable = false)
     private String messageStatus = "SENT"; // SENT | DELIVERED | READ
 

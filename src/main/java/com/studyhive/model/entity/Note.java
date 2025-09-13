@@ -21,11 +21,11 @@ public class Note {
     private UUID noteId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "noteRoomId", nullable = false)
+    @JoinColumn(name = "noteRoomId", referencedColumnName = "roomId", nullable = false)
     private Room noteRoom;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "noteCreatedBy", nullable = false)
+    @JoinColumn(name = "noteCreatedBy", referencedColumnName = "userId", nullable = false)
     private User noteCreatedBy;
 
     @Column(name = "noteContent", columnDefinition = "text", nullable = false)
@@ -34,6 +34,7 @@ public class Note {
     @Column(name = "noteUpvotes", nullable = false)
     private Integer noteUpvotes;
 
+    @Builder.Default
     @Column(name = "noteStatus", nullable = false)
     private String noteStatus = "ACTIVE";
 

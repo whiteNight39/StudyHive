@@ -1,6 +1,7 @@
 package com.studyhive.repository.interfaces;
 
 import com.studyhive.model.entity.User;
+import com.studyhive.model.interfaces.SearchUser;
 import com.studyhive.model.interfaces.UserGlobalProfileProjection;
 import com.studyhive.model.interfaces.UserGlobalProfileResponses;
 import com.studyhive.model.interfaces.UserProfileResponses;
@@ -27,16 +28,53 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     List<User> findAllByUserStatus(String userStatus);
 
-    @Query("SELECT u FROM User u WHERE LOWER(u.userName) LIKE LOWER(CONCAT('%', :searchQuery, '%')) AND u.userStatus != 'DELETED'")
-    List<User> searchUsersByUserName(@Param("searchQuery") String searchQuery);
+    @Query("SELECT u.userName as userName FROM User u WHERE LOWER(u.userName) LIKE LOWER(CONCAT('%', :searchQuery, '%')) AND u.userStatus != 'DELETED'")
+    List<SearchUser> searchUsersByUserName(@Param("searchQuery") String searchQuery);
 
     @Query("SELECT u.userId AS userId, u.userName AS userName FROM User u WHERE u.userStatus != 'DELETED'")
     Page<UserGlobalProfileProjection> findAllGlobalProfiles(Pageable pageable);
 
-    @Query("SELECT u, r.roomName, m.membershipRoleInRoom FROM User u LEFT JOIN Membership m ON m.membershipUser.userId = u.userId LEFT JOIN Room r ON r.roomId = m.membershipRoom.roomId WHERE u.userId = :userId AND u.userStatus != 'DELETED'")
+    @Query("""
+    SELECT
+        u.userId AS userId,
+        u.userName AS userName,
+        u.userFirstName AS userFirstName,
+        u.userLastName AS userLastName,
+        u.userEmail AS userEmail,
+        u.userMaxRooms AS userMaxRooms,
+        u.userCreditScore AS userCreditScore,
+        r.roomName AS userRoomsRoomName,
+        m.membershipRoleInRoom AS userRoomsRoomRole
+    FROM User u
+    LEFT JOIN Membership m ON m.membershipUser.userId = u.userId
+    LEFT JOIN Room r ON r.roomId = m.membershipRoom.roomId
+    WHERE u.userId = :userId
+    AND u.userStatus <> 'DELETED'
+    """)
     List<UserProfileResponses> userProfiles(@Param("userId") UUID userId);
 
-    @Query("SELECT u, r.roomName, m.membershipRoleInRoom FROM User u LEFT JOIN Membership m ON m.membershipUser.userId = u.userId LEFT JOIN Room r ON r.roomId = m.membershipRoom.roomId WHERE u.userId = :userId AND r.roomPrivacy = 'OPEN' AND u.userStatus != 'DELETED'")
+
+    @Query("""
+    SELECT
+        u.userId       AS userId,
+        u.userName     AS userName,
+        u.userFirstName AS userFirstName,
+        u.userLastName AS userLastName,
+        u.userEmail    AS userEmail,
+        u.userMaxRooms AS userMaxRooms,
+        u.userCreditScore AS userCreditScore,
+        r.roomName     AS roomName,
+        m.membershipRoleInRoom AS membershipRoleInRoom
+    FROM User u
+    LEFT JOIN Membership m
+        ON m.membershipUser.userId = u.userId
+    LEFT JOIN Room r
+        ON r.roomId = m.membershipRoom.roomId
+       AND r.roomPrivacy <> 'CLOSED'
+       AND r.roomPrivacy <> 'INVITE_ONLY'
+    WHERE u.userId = :userId
+      AND u.userStatus <> 'DELETED'
+    """)
     List<UserGlobalProfileResponses> userGlobalProfiles(@Param("userId") UUID userId);
 
     Optional<User> getByUserNameAndUserStatus(String userName, String userStatus);

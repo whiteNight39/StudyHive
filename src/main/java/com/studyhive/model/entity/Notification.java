@@ -21,11 +21,11 @@ public class Notification {
     private UUID notificationId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "notificationUserId", nullable = false)
+    @JoinColumn(name = "notificationUserId", referencedColumnName = "userId", nullable = false)
     private User notificationUser;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "notificationRoomId", nullable = false)
+    @JoinColumn(name = "notificationRoomId", referencedColumnName = "roomId", nullable = false)
     private Room notificationRoom; // optional
 
     @Column(name = "notificationMessage", nullable = false)
@@ -34,6 +34,7 @@ public class Notification {
     @Column(name = "notificationIsRead", nullable = false)
     private Boolean notificationIsRead = false; // default false
 
+    @Builder.Default
     @Column(name = "notificationStatus", nullable = false)
     private String notificationStatus = "ACTIVE"; // default value
 

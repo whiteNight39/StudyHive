@@ -21,11 +21,11 @@ public class RolePrivilege {
     private UUID rolePrivilegeId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "rolePrivilegeRoleId", nullable = false)
+    @JoinColumn(name = "rolePrivilegeRoleId", referencedColumnName = "roleId", nullable = false)
     private Role rolePrivilegeRole;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "rolePrivilegePrivilegeId", nullable = false)
+    @JoinColumn(name = "rolePrivilegePrivilegeId", referencedColumnName = "privilegeId", nullable = false)
     private Privilege rolePrivilegePrivilege;
 
     @Column(name = "rolePrivilegeCreatedAt", nullable = false, updatable = false)

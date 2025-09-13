@@ -1,5 +1,6 @@
 package com.studyhive.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -7,7 +8,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "User")
+@Table(name = "Users")
 @Getter
 @Setter
 @Builder
@@ -26,26 +27,29 @@ public class User {
     @Column(name = "userPassword", nullable = false)
     private String userPassword;
 
-    @Column(name = "userName", nullable = false, unique = true)
+    @Column(name = "userName", unique = true)
     private String userName;
 
-    @Column(name = "userFirstName", nullable = false)
+    @Column(name = "userFirstName")
     private String userFirstName;
 
-    @Column(name = "userLastName", nullable = false)
+    @Column(name = "userLastName")
     private String userLastName;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "userRoleId", nullable = false)
+    @JoinColumn(name = "userRoleId", referencedColumnName = "roleId", nullable = false)
+    @JsonIgnore
     private Role userRole;
 
+    @Builder.Default
     @Column(name = "userCreditScore", nullable = false)
     private int userCreditScore = 0;
 
+    @Builder.Default
     @Column(name = "userMaxRooms", nullable = false)
     private int userMaxRooms = 2;   // default: can only create 1 room
 
-
+    @Builder.Default
     @Column(name = "userStatus", nullable = false)
     private String userStatus = "ACTIVE";
 

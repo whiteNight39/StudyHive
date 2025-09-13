@@ -22,17 +22,18 @@ public class Membership {
     private UUID membershipId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "membershipUserId", nullable = false)
+    @JoinColumn(name = "membershipUserId", referencedColumnName = "userId", nullable = false)
     private User membershipUser;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "membershipRoomId", nullable = false)
+    @JoinColumn(name = "membershipRoomId", referencedColumnName = "roomId", nullable = false)
     private Room membershipRoom;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "membershipRoleInRoom", nullable = false)
     private RoleInRoom membershipRoleInRoom; // OWNER, MEMBER, TUTOR
 
+    @Builder.Default
     @Column(name = "membershipStatus", nullable = false)
     private String membershipStatus = "ACTIVE";
 

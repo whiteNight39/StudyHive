@@ -21,11 +21,11 @@ public class Session {
     private UUID sessionId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "sessionRoomId", nullable = false)
+    @JoinColumn(name = "sessionRoomId", referencedColumnName = "roomId", nullable = false)
     private Room sessionRoom;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "sessionScheduleddBy", nullable = false)
+    @JoinColumn(name = "sessionScheduleddBy", referencedColumnName = "userId", nullable = false)
     private User sessionScheduleddBy;
 
     @Column(name = "sessionTitle", nullable = false)

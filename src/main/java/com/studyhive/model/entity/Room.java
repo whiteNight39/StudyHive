@@ -8,7 +8,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "room")
+@Table(name = "Room")
 @Getter
 @Setter
 @Builder
@@ -28,9 +28,10 @@ public class Room {
     private String roomDescription;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "roomCreatedBy", nullable = false)
+    @JoinColumn(name = "roomCreatedBy", referencedColumnName = "userId", nullable = false)
     private User roomCreatedBy;
 
+    @Builder.Default
     @Column(name = "roomStatus", nullable = false)
     private String roomStatus = "ACTIVE";
 

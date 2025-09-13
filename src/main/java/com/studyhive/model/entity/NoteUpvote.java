@@ -24,15 +24,16 @@ public class NoteUpvote {
     private UUID noteUpvoteId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "noteId", nullable = false)
+    @JoinColumn(name = "noteId", referencedColumnName = "noteId", nullable = false)
     private Note note;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "userId", nullable = false)
+    @JoinColumn(name = "userId", referencedColumnName = "userId", nullable = false)
     private User noteUser;
 
+    @Builder.Default
     @Column(name = "noteUpvoteStatus", nullable = false)
-    private String noteUpvoteStatus;
+    private String noteUpvoteStatus = "ACTIVE";
 
     @Column(name = "noteUpvoteCreatedAt", nullable = false)
     private Instant noteUpvoteCreatedAt;

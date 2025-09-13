@@ -8,10 +8,14 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 @SecurityRequirement(name = "BearerAuth")
@@ -28,7 +32,23 @@ public class UserController {
 
     @PostMapping("/initiate-user-signup")
     public BaseResponse<?> initiateUserSignup(
-            @Valid @RequestBody UserInitiateSignUpRequest request) {
+            @Valid @RequestBody UserInitiateSignUpRequest request,
+            BindingResult bindingResult) {
+
+        if (bindingResult.hasErrors()) {
+            Map<String, String> errors = new HashMap<>();
+            bindingResult.getFieldErrors().forEach(error ->
+                    errors.put(error.getField(), error.getDefaultMessage())
+            );
+
+            BaseResponse<String> errorResponse = BaseResponse.<String>builder()
+                    .responseCode("400")
+                    .responseMessage("Validation failed")
+                    .responseData(errors.toString())
+                    .build();
+
+            return ResponseEntity.badRequest().body(errorResponse).getBody();
+        }
 
         return userService.initiateUserSignup(request);
     }

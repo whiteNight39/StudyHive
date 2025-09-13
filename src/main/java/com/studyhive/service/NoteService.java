@@ -50,6 +50,12 @@ public class NoteService {
                 .build();
         noteRepository.save(note);
 
+        NoteUpvote noteUpvote = NoteUpvote.builder()
+                .note(note)
+                .noteUser(noteUser)
+                .build();
+        noteUpvoteRepository.save(noteUpvote);
+
         noteUser.setUserCreditScore(noteUser.getUserCreditScore() + 2);
         userRepository.save(noteUser);
 
@@ -121,6 +127,7 @@ public class NoteService {
                     .noteTimestamp(note.getNoteUpdatedAt())
                     .noteCreatedByUserName(note.getNoteCreatedBy().getUserName())
                     .build();
+            noteResponses.add(noteResponse);
         }
 
         return new BaseResponse<>("00", "Notes found successfully", noteResponses);
@@ -168,6 +175,7 @@ public class NoteService {
         Membership membership = membershipRepository.findMembershipByMembershipRoomAndMembershipUserAndMembershipStatus(
                 room, user, "ACTIVE")
                 .orElseThrow(() -> new ApiException("33", "User is not a member of the room", null));
+        User noteOwner = note.getNoteCreatedBy();
 
         NoteUpvote noteUpvotedByUser = noteUpvoteRepository.findByNoteAndNoteUserAndNoteUpvoteStatus(note, user, "ACTIVE")
                 .orElse(null);
@@ -176,8 +184,10 @@ public class NoteService {
             note.setNoteUpvotes(note.getNoteUpvotes() - 1);
             noteRepository.save(note);
 
-            user.setUserCreditScore(user.getUserCreditScore() - 2); // keep balance
-            userRepository.save(user);
+            if (!(user == noteOwner)) {
+                user.setUserCreditScore(user.getUserCreditScore() - 2); // keep balance
+                userRepository.save(user);
+            }
 
             noteUpvoteRepository.deleteByNoteUpvoteId(noteUpvotedByUser.getNoteUpvoteId());
             return new BaseResponse<>("00", "Upvote removed",
@@ -186,8 +196,12 @@ public class NoteService {
 
         note.setNoteUpvotes(note.getNoteUpvotes() + 1);
         noteRepository.save(note);
-        user.setUserCreditScore(user.getUserCreditScore() + 2);
-        userRepository.save(user);
+
+        if (!(user == noteOwner)) {
+            user.setUserCreditScore(user.getUserCreditScore() + 2);
+            userRepository.save(user);
+        }
+
         NoteUpvote noteUpvote = NoteUpvote.builder()
                 .note(note)
                 .noteUser(user)

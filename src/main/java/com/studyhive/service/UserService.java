@@ -5,6 +5,7 @@ import com.studyhive.model.entity.Role;
 import com.studyhive.model.entity.User;
 import com.studyhive.model.entity.UserLoginJwt;
 import com.studyhive.model.entity.UserOtp;
+import com.studyhive.model.interfaces.SearchUser;
 import com.studyhive.model.interfaces.UserGlobalProfileProjection;
 import com.studyhive.model.interfaces.UserGlobalProfileResponses;
 import com.studyhive.model.request.*;
@@ -17,6 +18,7 @@ import com.studyhive.repository.interfaces.UserLoginJwtRepository;
 import com.studyhive.repository.interfaces.UserOtpRepository;
 import com.studyhive.repository.interfaces.UserRepository;
 import com.studyhive.util.TokenGenerator;
+import com.studyhive.util.exception.ApiException;
 import com.studyhive.util.jwt.JwtUtil;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -45,7 +47,7 @@ public class UserService {
 
     private final RoleRepository roleRepository;
 
-    private final String passwordPattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$\n";
+    private final String passwordPattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$";
     private final Pattern pattern = Pattern.compile(passwordPattern);
 
     public UserService(EmailService emailService, UserMapper userMapper, UserRepository userRepository, UserOtpRepository userOtpRepository, UserLoginJwtRepository userLoginJwtRepository, JwtUtil jwtUtil, RoleRepository roleRepository) {
@@ -59,23 +61,30 @@ public class UserService {
     }
 
     @Transactional
-    public BaseResponse initiateUserSignup(UserInitiateSignUpRequest request) {
+    public BaseResponse<?> initiateUserSignup(UserInitiateSignUpRequest request) {
         if (request == null)
-            throw new IllegalArgumentException("request cannot be null");
+            throw new ApiException("11", "User signup request cannot be null", null);
 
-        Optional<User> existingUser = userRepository.getByUserEmailAndUserStatus(request.getUserEmail(), "ACTIVE");
-        if (existingUser.isPresent()) {
-            throw new IllegalArgumentException("user already exists");
-        }
+        userRepository.getByUserEmailAndUserStatus(request.getUserEmail(), "ACTIVE")
+                .ifPresent(user -> {
+                    throw new ApiException("55", "Email is already in use", null);
+                });
+        System.out.println("Email is valid");
+
         if (!isPasswordStrong(request.getUserPassword())) {
-            throw new IllegalArgumentException("Minimum 8 characters required for password, " +
-                    "at least one uppercase, one lowercase, one digit, one special character");
+            throw new ApiException("11",
+                    "Password must be at least 8 characters, " +
+                            "and include uppercase, lowercase, digit, and special character",
+                    null);
         }
+        System.out.println("Password is valid");
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
         String otp = TokenGenerator.generateSecureToken(12);
         String hashedOtp = bCryptPasswordEncoder.encode(otp);
         String hashedPassword = bCryptPasswordEncoder.encode(request.getUserPassword());
+        System.out.println("Hashed OTP is " + hashedOtp);
+
 
         UserOtp userOtp = UserOtp.builder()
                 .userOtpUserEmail(request.getUserEmail())
@@ -84,29 +93,34 @@ public class UserService {
                 .userOtpExpiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
                 .build();
         userOtpRepository.save(userOtp);
+        System.out.println("User Otp has been saved");
 
         emailService.sendEmail(request.getUserEmail(),
                 emailService.MSG_ENROLLMENT_TITLE,
                 String.format(emailService.MSG_ENROLLMENT_BODY, otp));
+        System.out.println("User Otp has been sent to send email");
 
         Role defaultRole = roleRepository.getByRoleName("USER").get(0);
 
-        User user = User.builder()
-                .userEmail(request.getUserEmail())
-                .userPassword(hashedPassword)
-                .userStatus("PENDING")
-                .userRole(defaultRole)
-                .build();
-        userRepository.save(user);
+        Optional<User> existingUser = userRepository.getByUserEmailAndUserStatus(request.getUserEmail(), "PENDING");
+        if (existingUser.isEmpty()) {
+            User user = User.builder()
+                    .userEmail(request.getUserEmail())
+                    .userPassword(hashedPassword)
+                    .userStatus("PENDING")
+                    .userRole(defaultRole)
+                    .build();
+            userRepository.save(user);
+            System.out.println("User has been saved");
+        }
 
-
-        return new BaseResponse("00","OTP has been sent", null);
+        return new BaseResponse<>("00","OTP has been sent", null);
     }
 
     @Transactional
-    public BaseResponse completeUserSignup(UserCompleteSignUpRequest request) {
+    public BaseResponse<?> completeUserSignup(UserCompleteSignUpRequest request) {
         if  (request == null)
-            throw new IllegalArgumentException("request cannot be null");
+            throw new ApiException("11", "User signup request cannot be null", null);
 
         boolean foundMatchingOtp = false;
         boolean otpIsValid =  false;
@@ -115,8 +129,9 @@ public class UserService {
                 request.getUserEmail(),
                 "ENROLLMENT",
                 "ACTIVE");
-        if (userOtps.isEmpty())
-            throw new IllegalArgumentException("User has not initiated enrollment");
+        if (userOtps.isEmpty()) {
+            throw new ApiException("11", "User has not initiated enrollment. OTP not found.", null);
+        }
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
         for (UserOtp userOtp : userOtps) {
@@ -130,8 +145,8 @@ public class UserService {
                     continue;
                 }
 
-                User user = userRepository.getByUserEmailAndUserStatus(request.getUserEmail(), "ACTIVE")
-                                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                User user = userRepository.getByUserEmailAndUserStatus(request.getUserEmail(), "PENDING")
+                                .orElseThrow(() -> new ApiException("44", "User not found", null));
                 user.setUserStatus("ACTIVE");
                 userRepository.save(user);
                 otpIsValid = true;
@@ -141,34 +156,37 @@ public class UserService {
                 break;
             }
         }
-        if (!foundMatchingOtp)
-            throw new IllegalArgumentException("Invalid OTP");
-        if (!otpIsValid)
-            throw new IllegalArgumentException("Otp is expired");
+        if (!foundMatchingOtp) {
+            throw new ApiException("11", "Invalid OTP provided", null);
+        }
 
-        return new BaseResponse("00","Account Activated", null);
+        if (!otpIsValid) {
+            throw new ApiException("11", "OTP has expired", null);
+        }
+
+        return new BaseResponse<>("00","Account Activated", null);
     }
 
-    public BaseResponse logInUser(UserLogInRequest request, String deviceIp, String deviceUserAgent) {
-        if (request == null)
-            throw new IllegalArgumentException("request cannot be null");
+    public BaseResponse<?> logInUser(UserLogInRequest request, String deviceIp, String deviceUserAgent) {
+        if (request == null) {
+            throw new ApiException("11", "Login request cannot be null", null);
+        }
 
         Optional<User> userByEmail = userRepository.getByUserEmailAndUserStatus(request.getUserEmail(), "ACTIVE");
-        Optional<User> userByUsername = userRepository.getByUserNameAndUserStatus(request.getUserName(),  "ACTIVE");
+        Optional<User> userByUsername = userRepository.getByUserNameAndUserStatus(request.getUserName(), "ACTIVE");
 
         User user = userByEmail.or(() -> userByUsername)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid username and/or password"));
-        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+                .orElseThrow(() -> new ApiException("11", "Invalid username and/or password", null));
 
+        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
         if (!bCryptPasswordEncoder.matches(request.getUserPassword(), user.getUserPassword())) {
-            throw new IllegalArgumentException("Invalid username and/or password");
+            throw new ApiException("11", "Invalid username and/or password", null);
         }
 
         Optional<UserLoginJwt> existingJwt = userLoginJwtRepository.findJwt(user.getUserId(), deviceIp, deviceUserAgent);
         String jwtToken;
 
         if (existingJwt.isEmpty()) {
-
             jwtToken = jwtUtil.generateToken(user.getUserId());
 
             UserLoginJwt newJwt = UserLoginJwt.builder()
@@ -179,53 +197,59 @@ public class UserService {
                     .userLoginJwtDeviceIp(deviceIp)
                     .userLoginJwtUserAgent(deviceUserAgent)
                     .build();
+
             userLoginJwtRepository.save(newJwt);
         } else {
             jwtToken = existingJwt.get().getUserLoginJwtToken();
         }
 
-
-        return new BaseResponse("00","Log in successful", jwtToken);
+        return new BaseResponse<>("00", "Log in successful", jwtToken);
     }
 
-    public BaseResponse completeUserProfile(UserProfileCreateRequest request) {
-        if (request == null)
-            throw new IllegalArgumentException("request cannot be null");
-
-        userRepository.getByUserNameAndUserStatus(request.getUserName(), "ACTIVE")
-                .ifPresent(user -> {
-                    throw new IllegalArgumentException("Username already in use");
-                });
-
-        User user = userRepository.getByUserEmailAndUserStatus(request.getUserEmail(),  "ACTIVE")
-                        .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + request.getUserEmail()));
-
-        if (user.getUserName() != null) {
-            throw new IllegalStateException("Profile already created");
+    public BaseResponse<?> completeUserProfile(UserProfileCreateRequest request) {
+        if (request == null) {
+            throw new ApiException("11", "Profile creation request cannot be null", null);
         }
 
+        // Check if username is already taken
+        userRepository.getByUserNameAndUserStatus(request.getUserName(), "ACTIVE")
+                .ifPresent(user -> {
+                    throw new ApiException("55", "Username already in use", null);
+                });
+
+        // Fetch user by email
+        User user = userRepository.getByUserEmailAndUserStatus(request.getUserEmail(), "ACTIVE")
+                .orElseThrow(() -> new ApiException("44", "User not found with email: " + request.getUserEmail(), null));
+
+        // Ensure profile hasn't been created already
+        if (user.getUserName() != null) {
+            throw new ApiException("22", "User profile has already been created", null);
+        }
+
+        // Complete profile
         user.setUserName(request.getUserName());
         user.setUserFirstName(request.getUserFirstName());
         user.setUserLastName(request.getUserLastName());
         userRepository.save(user);
 
-        return new BaseResponse("00","User profile completed successfully", null);
+        return new BaseResponse<>("00", "User profile completed successfully", null);
     }
 
     @Transactional
-    public BaseResponse updateUserDetails(UserUpdateRequest request, UUID userId) {
-        if (request == null)
-            throw new IllegalArgumentException("request cannot be null");
+    public BaseResponse<?> updateUserDetails(UserUpdateRequest request, UUID userId) {
+        if (request == null) {
+            throw new ApiException("11", "Update request cannot be null", null);
+        }
 
         User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new ApiException("44", "User not found", null));
 
         // Check if username is being updated
         String newUsername = request.getUserName();
         if (newUsername != null && !newUsername.equals(user.getUserName())) {
             boolean usernameTaken = userRepository.existsByUserName(newUsername);
             if (usernameTaken) {
-                throw new IllegalArgumentException("Username already in use");
+                throw new ApiException("55", "Username already in use", null);
             }
             user.setUserName(newUsername);
         }
@@ -234,39 +258,47 @@ public class UserService {
         Optional.ofNullable(request.getUserLastName()).ifPresent(user::setUserLastName);
         userRepository.save(user);
 
-        return new BaseResponse("00","User updated successfully", null);
+        return new BaseResponse<>("00", "User updated successfully", null);
     }
 
     @Transactional
-    public BaseResponse updateUserPassword(UserUpdateRequest request, UUID userId) {
-        if (request == null)
-            throw new IllegalArgumentException("request cannot be null");
+    public BaseResponse<?> updateUserPassword(UserUpdateRequest request, UUID userId) {
+        if (request == null) {
+            throw new ApiException("11", "Password update request cannot be null", null);
+        }
 
         User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new ApiException("44", "User not found", null));
+
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
         if (!bCryptPasswordEncoder.matches(request.getUserOldPassword(), user.getUserPassword())) {
-            throw new IllegalArgumentException("Old password doesn't match");
+            throw new ApiException("11", "Old password does not match", null);
         }
+
         if (!isPasswordStrong(request.getUserNewPassword())) {
-            throw new IllegalArgumentException("Minimum 8 characters required for password, " +
-                    "at least one uppercase, one lowercase, one digit, one special character");
+            throw new ApiException("11",
+                    "New password must be at least 8 characters and include uppercase, lowercase, digit, and special character",
+                    null);
         }
+
         String hashedNewPassword = bCryptPasswordEncoder.encode(request.getUserNewPassword());
         user.setUserPassword(hashedNewPassword);
         userRepository.save(user);
 
-        return new BaseResponse("00","User password updated successfully", null);
+        return new BaseResponse<>("00", "User password updated successfully", null);
     }
 
+
     @Transactional
-    public BaseResponse initiatePasswordReset(UserInitiatePasswordResetRequest request) {
-        if (request == null)
-            throw new IllegalArgumentException("request cannot be null");
+    public BaseResponse<?> initiatePasswordReset(UserInitiatePasswordResetRequest request) {
+        if (request == null) {
+            throw new ApiException("11", "Password reset request cannot be null", null);
+        }
 
         User user = userRepository.getByUserEmailAndUserStatus(request.getUserEmail(), "ACTIVE")
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new ApiException("44", "User not found", null));
+
         BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
         String otp = TokenGenerator.generateSecureToken(12);
@@ -278,35 +310,38 @@ public class UserService {
                 .userOtpReason("PASSWORD_RESET")
                 .userOtpExpiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
                 .build();
+
         userOtpRepository.save(userOtp);
 
         emailService.sendEmail(request.getUserEmail(),
                 emailService.MSG_PASSWORD_RESET_TITLE,
                 String.format(emailService.MSG_PASSWORD_RESET_BODY, otp));
 
-        return new BaseResponse("00","Password reset OTP sent", null);
+        return new BaseResponse<>("00", "Password reset OTP sent", null);
     }
 
-    @Transactional
-    public BaseResponse completePasswordReset(UserCompletePasswordResetRequest request) {
 
-        if (request == null)
-            throw new IllegalArgumentException("request cannot be null");
+    @Transactional
+    public BaseResponse<?> completePasswordReset(UserCompletePasswordResetRequest request) {
+        if (request == null) {
+            throw new ApiException("11", "Password reset request cannot be null", null);
+        }
 
         List<UserOtp> userOtps = userOtpRepository.findByUserOtpUserEmailAndUserOtpReasonAndUserOtpStatusOrderByUserOtpCreatedAtDesc(
                 request.getUserEmail(),
                 "PASSWORD_RESET",
                 "ACTIVE");
-        if (userOtps.isEmpty())
-            throw new IllegalArgumentException("User has not initiated password reset");
-        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
 
+        if (userOtps.isEmpty()) {
+            throw new ApiException("11", "User has not initiated password reset", null);
+        }
+
+        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
         boolean foundMatchingOtp = false;
         boolean otpIsValid = false;
         String hashedNewPassword = bCryptPasswordEncoder.encode(request.getUserNewPassword());
 
         for (UserOtp userOtp : userOtps) {
-
             if (bCryptPasswordEncoder.matches(request.getOtp(), userOtp.getUserOtpOtp())) {
                 foundMatchingOtp = true;
 
@@ -317,7 +352,8 @@ public class UserService {
                 }
 
                 User user = userRepository.getByUserEmailAndUserStatus(request.getUserEmail(), "ACTIVE")
-                        .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                        .orElseThrow(() -> new ApiException("44", "User not found", null));
+
                 user.setUserPassword(hashedNewPassword);
                 userRepository.save(user);
                 otpIsValid = true;
@@ -327,83 +363,94 @@ public class UserService {
                 break;
             }
         }
-        if (!foundMatchingOtp)
-            throw new IllegalArgumentException("Invalid OTP");
-        if (!otpIsValid)
-            throw new IllegalArgumentException("Otp is expired");
 
-        return new BaseResponse("00","Password reset successful", null);
+        if (!foundMatchingOtp) {
+            throw new ApiException("11", "Invalid OTP", null);
+        }
+
+        if (!otpIsValid) {
+            throw new ApiException("11", "OTP has expired", null);
+        }
+
+        return new BaseResponse<>("00", "Password reset successful", null);
     }
 
-    public BaseResponse deactivateUserAccount(UUID userId) {
-
-        if (userId == null)
-            throw new IllegalArgumentException("userId cannot be null");
+    public BaseResponse<?> deactivateUserAccount(UUID userId) {
+        if (userId == null) {
+            throw new ApiException("11", "User ID cannot be null", null);
+        }
 
         User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new ApiException("44", "User not found", null));
 
         userRepository.deleteByUserId(userId);
 
-        return new BaseResponse("00","User deactivated successfully", null);
+        return new BaseResponse<>("00", "User deactivated successfully", null);
     }
 
-    public BaseResponse viewUserPersonalProfile(UUID userId) {
-        if (userId == null)
-            throw new IllegalArgumentException("userId cannot be null");
+    public BaseResponse<?> viewUserPersonalProfile(UUID userId) {
+        if (userId == null) {
+            throw new ApiException("11", "User ID cannot be null", null);
+        }
 
         User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new ApiException("44", "User not found", null));
 
+        System.out.println(userId);
         List<UserProfileResponses> responses = userRepository.userProfiles(userId);
+        System.out.println(responses);
+
         UserProfileResponse userProfileResponse = UserProfileResponse.builder()
-                .userId(responses.get(0).getUserId())
-                .userName(responses.get(0).getUserName())
-                .userFirstName(responses.get(0).getUserFirstName())
-                .userLastName(responses.get(0).getUserLastName())
-                .userEmail(responses.get(0).getUserEmail())
-                .userMaxRooms(responses.get(0).getUserMaxRooms())
-                .userCreditScore(responses.get(0).getUserCreditScore())
+                .userId(responses.getFirst().getUserId())
+                .userName(responses.getFirst().getUserName())
+                .userFirstName(responses.getFirst().getUserFirstName())
+                .userLastName(responses.getFirst().getUserLastName())
+                .userEmail(responses.getFirst().getUserEmail())
+                .userMaxRooms(responses.getFirst().getUserMaxRooms())
+                .userCreditScore(responses.getFirst().getUserCreditScore())
                 .userRoomInfo(responses.stream()
                         .filter(r -> r.getUserRoomsRoomName() != null && r.getUserRoomsRoomRole() != null)
                         .map(r -> new UserProfileResponse.UserRoomInfo(r.getUserRoomsRoomName(), r.getUserRoomsRoomRole()))
                         .toList())
                 .build();
 
-        return new BaseResponse("00","User personal profile", userProfileResponse);
+        return new BaseResponse<>("00", "User personal profile", userProfileResponse);
     }
 
-    public BaseResponse searchUserProfiles(String searchQuery, UUID userId) {
-        if (searchQuery == null)
-            throw new IllegalArgumentException("searchQuery cannot be null");
+    public BaseResponse<?> searchUserProfiles(String searchQuery, UUID userId) {
+        if (searchQuery == null) {
+            throw new ApiException("11", "Search query cannot be null", null);
+        }
 
         User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new ApiException("44", "User not found", null));
 
-        List<User> users = userRepository.searchUsersByUserName(searchQuery);
+        List<SearchUser> users = userRepository.searchUsersByUserName(searchQuery);
 
-        List<UserGlobalProfileResponse> responses = users.stream()
-                .map(userMapper::toGlobalProfileResponse)
-                .toList();
+//        List<UserGlobalProfileResponse> responses = users.stream()
+//                .map(userMapper::toGlobalProfileResponse)
+//                .toList();
 
-        return new BaseResponse("00", "Search results", responses);
+        return new BaseResponse<>("00", "Search results", users);
     }
 
-    public BaseResponse viewUserGlobalProfile(UUID viewerUserId, UUID vieweeUserId) {
+    public BaseResponse<?> viewUserGlobalProfile(UUID viewerUserId, UUID vieweeUserId) {
         if (viewerUserId == null) {
-            throw new IllegalArgumentException("viewerUserId cannot be null");
+            throw new ApiException("11", "Viewer user ID cannot be null", null);
         }
         if (vieweeUserId == null) {
-            throw new IllegalArgumentException("vieweeUserId cannot be null");
+            throw new ApiException("11", "Viewee user ID cannot be null", null);
         }
 
-        // Only fetch viewer if necessary (for permissions)
+        // Fetch viewer for permissions
         userRepository.getByUserIdAndUserStatus(viewerUserId, "ACTIVE")
-                .orElseThrow(() -> new IllegalArgumentException("Viewer not found"));
-        User vieweeUser = userRepository.getByUserIdAndUserStatus(vieweeUserId,  "ACTIVE")
-                .orElseThrow(() -> new IllegalArgumentException("User to view not found"));
+                .orElseThrow(() -> new ApiException("44", "Viewer not found", null));
+
+        User vieweeUser = userRepository.getByUserIdAndUserStatus(vieweeUserId, "ACTIVE")
+                .orElseThrow(() -> new ApiException("44", "User to view not found", null));
 
         List<UserGlobalProfileResponses> responses = userRepository.userGlobalProfiles(vieweeUserId);
+
         UserGlobalProfileResponse response = UserGlobalProfileResponse.builder()
                 .userId(responses.get(0).getUserId())
                 .userName(responses.get(0).getUserName())
@@ -413,17 +460,18 @@ public class UserService {
                         .toList())
                 .build();
 
-        return new BaseResponse("00", "User global profile", response);
+        return new BaseResponse<>("00", "User global profile", response);
     }
 
-    public BaseResponse viewAllUsers(UUID userId, int page, int size) {
-        if (userId == null)
-            throw new IllegalArgumentException("userId cannot be null");
+    public BaseResponse<?> viewAllUsers(UUID userId, int page, int size) {
+        if (userId == null) {
+            throw new ApiException("11", "User ID cannot be null", null);
+        }
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("userName").ascending());
         Page<UserGlobalProfileProjection> usersPage = userRepository.findAllGlobalProfiles(pageable);
 
-        return new BaseResponse(
+        return new BaseResponse<>(
                 "00",
                 "All users",
                 Map.of(

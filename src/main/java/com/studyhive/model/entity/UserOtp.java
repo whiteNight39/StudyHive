@@ -23,7 +23,8 @@ public class UserOtp {
     @Column(name = "userOtpOtp", updatable = false, nullable = false)
     private String userOtpOtp;
 
-    @Column(name = "userOtpStatus")
+    @Builder.Default
+    @Column(name = "userOtpStatus", nullable = false)
     private String userOtpStatus = "ACTIVE";
 
     @Column(name = "userOtpReason")
@@ -35,11 +36,16 @@ public class UserOtp {
     @Column(name = "userOtpExpiresAt", updatable = false, nullable = false)
     private Instant userOtpExpiresAt;
 
-    @Column(name = "userOtpCreatedAt", updatable = false)
+    @Column(name = "userOtpCreatedAt", updatable = false, nullable = false)
     private Instant userOtpCreatedAt;
 
     @PrePersist
     void onCreate() {
-        userOtpCreatedAt = Instant.now();
+        if (userOtpCreatedAt == null) {
+            userOtpCreatedAt = Instant.now();
+        }
+        if (userOtpStatus == null) {
+            userOtpStatus = "ACTIVE";
+        }
     }
 }

@@ -21,10 +21,10 @@ public class NoteTag {
     private UUID noteTagId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "noteTagNoteId", nullable = false)
+    @JoinColumn(name = "noteTagNoteId", referencedColumnName = "noteId", nullable = false)
     private Note noteTagNote;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "noteTagTagId", nullable = false)
+    @JoinColumn(name = "noteTagTagId", referencedColumnName = "tagId", nullable = false)
     private Tag noteTagTag;
 }

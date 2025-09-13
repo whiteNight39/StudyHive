@@ -24,6 +24,7 @@ public class Role {
     @Column(name = "roleDescription")
     private String roleDescription;
 
+    @Builder.Default
     @Column(name = "roleStatus", nullable = false)
     private String roleStatus = "ACTIVE";
 

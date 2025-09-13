@@ -21,11 +21,11 @@ public class RoomJoinRequest {
     private UUID roomJoinRequestId;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "roomJoinRequestUserId", nullable = false)
+    @JoinColumn(name = "roomJoinRequestUserId", referencedColumnName = "userId", nullable = false)
     private User roomJoinRequestUser;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "roomJoinRequestRoomId", nullable = false)
+    @JoinColumn(name = "roomJoinRequestRoomId", referencedColumnName = "roomId", nullable = false)
     private Room roomJoinRequestRoom;
 
     @Column(name = "roomJoinRequestStatus", nullable = false)
@@ -41,7 +41,7 @@ public class RoomJoinRequest {
     private Instant roomJoinRequestReviewedAt;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
-    @JoinColumn(name = "roomJoinReqestReviewedBy", nullable = true)
+    @JoinColumn(name = "roomJoinReqestReviewedBy", referencedColumnName = "userId", nullable = true)
     private User roomJoinRequestReviewedBy;
 
     @PrePersist
