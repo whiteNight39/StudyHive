@@ -198,8 +198,8 @@ public class NoteService {
         noteRepository.save(note);
 
         if (!(user == noteOwner)) {
-            user.setUserCreditScore(user.getUserCreditScore() + 2);
-            userRepository.save(user);
+            noteOwner.setUserCreditScore(noteOwner.getUserCreditScore() + 2);
+            userRepository.save(noteOwner);
         }
 
         NoteUpvote noteUpvote = NoteUpvote.builder()
