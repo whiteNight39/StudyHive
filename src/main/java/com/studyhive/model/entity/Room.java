@@ -1,5 +1,6 @@
 package com.studyhive.model.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.studyhive.model.enums.RoomPrivacy;
 import jakarta.persistence.*;
 import lombok.*;
@@ -29,6 +30,7 @@ public class Room {
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "roomCreatedBy", referencedColumnName = "userId", nullable = false)
+    @JsonIgnore
     private User roomCreatedBy;
 
     @Builder.Default
