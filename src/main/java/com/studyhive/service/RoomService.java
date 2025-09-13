@@ -656,10 +656,6 @@ public class RoomService {
             membership.ifPresent(m -> roomUserAllowedToSee.add(room));
         }
 
-        List<RoomResponse> responses = roomUserAllowedToSee.stream()
-                .map(r -> new RoomResponse(r.getRoomId(), r.getRoomName(), r.getRoomPrivacy().name()))
-                .toList();
-
         return new BaseResponse<>("00", "All Rooms", roomUserAllowedToSee);
     }
 
