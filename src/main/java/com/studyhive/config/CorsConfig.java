@@ -18,6 +18,7 @@ public class CorsConfig {
                 registry.addMapping("/**")
                         .allowedOrigins(
                                 "https://studyhive-5iel.onrender.com",
+                                "https://studyhive-5iel.onrender.com/swagger-ui/index.html#",
                                 "http://127.0.0.1:5500",
                                 "http://localhost:8080",
                                 "https://whitenightnotes.netlify.app"
