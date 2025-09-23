@@ -5,9 +5,12 @@ import com.studyhive.model.response.BaseResponse;
 import com.studyhive.service.UserService;
 import com.studyhive.util.jwt.CustomUserPrincipal;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
@@ -61,8 +64,8 @@ public class UserController {
     }
 
     @PostMapping("/login-user")
-    public BaseResponse<?> loginUser(
-            @Valid @RequestBody UserLogInRequest request, HttpServletRequest servletRequest) {
+    public ResponseEntity<BaseResponse<?>> loginUser(
+            @Valid @RequestBody UserLogInRequest request, HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
 
         String ip = servletRequest.getHeader("X-Forwarded-For");
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
@@ -72,7 +75,25 @@ public class UserController {
         }
         String userAgent = servletRequest.getHeader("User-Agent");
 
-        return userService.logInUser(request, ip, userAgent);
+        BaseResponse<?> response = userService.logInUser(request, ip, userAgent);
+
+        String jwToken = (String) response.getResponseData();
+
+        ResponseCookie cookie = ResponseCookie.from("jwt", jwToken)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("Strict")
+                .path("/")
+                .maxAge(60 * 60)
+                .build();
+
+        servletResponse.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+        response.setResponseData(null);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body(response);
     }
 
     @PostMapping("/complete-user-profile")

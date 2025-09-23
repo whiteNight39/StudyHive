@@ -185,8 +185,8 @@ public class NoteService {
             noteRepository.save(note);
 
             if (!(user == noteOwner)) {
-                user.setUserCreditScore(user.getUserCreditScore() - 2); // keep balance
-                userRepository.save(user);
+                noteOwner.setUserCreditScore(noteOwner.getUserCreditScore() - 2); // keep balance
+                userRepository.save(noteOwner);
             }
 
             noteUpvoteRepository.deleteByNoteUpvoteId(noteUpvotedByUser.getNoteUpvoteId());

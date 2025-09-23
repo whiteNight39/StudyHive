@@ -4,11 +4,6 @@ import com.studyhive.model.entity.Message;
 import com.studyhive.model.request.LoadMessagesRequest;
 import com.studyhive.model.request.MessageUpdateRequest;
 import com.studyhive.model.response.BaseResponse;
-import com.studyhive.util.jwt.CustomUserPrincipal;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import jakarta.validation.Valid;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -23,7 +18,7 @@ import java.security.Principal;
 
 @Controller
 @RequiredArgsConstructor
-public class WebSocketMessageController {
+public class MessageController {
 
     private final SimpMessagingTemplate template;
     private final MessageService messageService;
