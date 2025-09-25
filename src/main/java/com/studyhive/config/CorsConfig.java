@@ -15,10 +15,14 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(@NotNull CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("*")  // Allow all origins
-                        .allowedMethods("*")  // Allow all methods
-                        .allowedHeaders("*")  // Allow all headers
-                        .allowCredentials(false); // Must be false when using "*" for origins
+                        .allowedOrigins(
+                                "https://studyhive-fe-tkfe.onrender.com",  // ✅ Your frontend on Render
+                                "http://127.0.0.1:5500"                    // ✅ Your local development
+                        )
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
+                        .allowedHeaders("*")
+                        .exposedHeaders("Authorization")
+                        .allowCredentials(true);
             }
         };
     }
