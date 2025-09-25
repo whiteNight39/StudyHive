@@ -11,22 +11,14 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class CorsConfig {
     @Bean
     public WebMvcConfigurer corsConfigurer() {
-
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(@NotNull CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins(
-                                "https://studyhive-5iel.onrender.com",
-                                "https://studyhive-5iel.onrender.com/swagger-ui/index.html#",
-                                "http://127.0.0.1:5500",
-                                "http://localhost:8080",
-                                "https://whitenightnotes.netlify.app"
-                        )
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
-                        .allowedHeaders("*")
-                        .exposedHeaders("Authorization")
-                        .allowCredentials(true);
+                        .allowedOrigins("*")  // Allow all origins
+                        .allowedMethods("*")  // Allow all methods
+                        .allowedHeaders("*")  // Allow all headers
+                        .allowCredentials(false); // Must be false when using "*" for origins
             }
         };
     }
