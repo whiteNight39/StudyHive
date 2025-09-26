@@ -37,6 +37,7 @@ import java.util.regex.Pattern;
 public class UserService {
 
     private final EmailService emailService;
+    private final ResendService resendService;
 
     private final UserMapper userMapper;
     private final UserRepository userRepository;
@@ -50,8 +51,9 @@ public class UserService {
     private final String passwordPattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$";
     private final Pattern pattern = Pattern.compile(passwordPattern);
 
-    public UserService(EmailService emailService, UserMapper userMapper, UserRepository userRepository, UserOtpRepository userOtpRepository, UserLoginJwtRepository userLoginJwtRepository, JwtUtil jwtUtil, RoleRepository roleRepository) {
+    public UserService(EmailService emailService, ResendService resendService, UserMapper userMapper, UserRepository userRepository, UserOtpRepository userOtpRepository, UserLoginJwtRepository userLoginJwtRepository, JwtUtil jwtUtil, RoleRepository roleRepository) {
         this.emailService = emailService;
+        this.resendService = resendService;
         this.userMapper = userMapper;
         this.userRepository = userRepository;
         this.userOtpRepository = userOtpRepository;
@@ -95,9 +97,7 @@ public class UserService {
         userOtpRepository.save(userOtp);
         System.out.println("User Otp has been saved");
 
-        emailService.sendEmail(request.getUserEmail(),
-                emailService.MSG_ENROLLMENT_TITLE,
-                String.format(emailService.MSG_ENROLLMENT_BODY, otp));
+        resendService.sendEnrollmentEmail(request.getUserEmail(), otp);
         System.out.println("User Otp has been sent to send email");
 
         Role defaultRole = roleRepository.getByRoleName("USER").get(0);
