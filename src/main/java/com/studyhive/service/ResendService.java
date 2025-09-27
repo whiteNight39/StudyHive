@@ -16,10 +16,10 @@ public class ResendService {
     }
 
     // ================== Message Templates ==================
-    public String MSG_ENROLLMENT_BODY = "Please use the 6 digit code... %s to complete your enrollment.\nOTP expires after 1 hour.";
+    public String MSG_ENROLLMENT_BODY = "Please use the code... %s to complete your enrollment.\nOTP expires after 1 hour.";
     public String MSG_ENROLLMENT_TITLE = "Enrollment";
 
-    public String MSG_PASSWORD_RESET_BODY = "Please use the 6 digit code... %s to reset your password.\nOTP expires after 1 hour.";
+    public String MSG_PASSWORD_RESET_BODY = "Please use the code... %s to reset your password.\nOTP expires after 1 hour.";
     public String MSG_PASSWORD_RESET_TITLE = "Password Reset";
     // ========================================================
 

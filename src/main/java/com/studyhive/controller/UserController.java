@@ -63,6 +63,20 @@ public class UserController {
         return userService.completeUserSignup(request);
     }
 
+    @PostMapping("/resend-user-otp")
+    public BaseResponse<?> resendUserOtp(
+            @Valid @RequestParam String userEmail) {
+
+        return userService.resendUserOtp(userEmail);
+    }
+
+    @GetMapping("/verify-unique-username")
+    public BaseResponse<?> verifyUniqueUsername(
+            @Valid @RequestParam String userName) {
+
+        return userService.verifyUniqueUserName(userName);
+    }
+
     @PostMapping("/login-user")
     public ResponseEntity<BaseResponse<?>> loginUser(
             @Valid @RequestBody UserLogInRequest request, HttpServletRequest servletRequest, HttpServletResponse servletResponse) {

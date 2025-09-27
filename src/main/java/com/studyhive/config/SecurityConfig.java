@@ -33,6 +33,8 @@ public class SecurityConfig {
                                 "/auth/**",
                                 "/user/login-user",
                                 "/user/initiate-user-signup",
+                                "/user/resend-user-otp",
+                                "/user/verify-unique-username",
                                 "/user/complete-user-signup",
                                 "/user/initiate-password-reset",
                                 "/user/complete-password-reset",

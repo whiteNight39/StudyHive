@@ -117,6 +117,49 @@ public class UserService {
         return new BaseResponse<>("00","OTP has been sent", null);
     }
 
+    public BaseResponse<?> resendUserOtp(String userEmail) {
+        if (userEmail == null)
+            throw new ApiException("11", "User email is required", null);
+
+        userRepository.getByUserEmailAndUserStatus(userEmail, "ACTIVE")
+                .ifPresent(user -> {
+                    throw new ApiException("55", "Email is already in use", null);
+                });
+
+        BCryptPasswordEncoder bCryptPasswordEncoder = new BCryptPasswordEncoder();
+
+        String otp = TokenGenerator.generateSecureToken(12);
+        String hashedOtp = bCryptPasswordEncoder.encode(otp);
+        System.out.println("Hashed OTP is " + hashedOtp);
+
+        UserOtp userOtp = UserOtp.builder()
+                .userOtpUserEmail(userEmail)
+                .userOtpOtp(hashedOtp)
+                .userOtpReason("ENROLLMENT")
+                .userOtpExpiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
+                .build();
+        userOtpRepository.save(userOtp);
+        System.out.println("User Otp has been saved");
+
+        resendService.sendEnrollmentEmail(userEmail, otp);
+        System.out.println("User Otp has been sent to send email");
+
+        return new BaseResponse<>("00","OTP has been sent", null);
+    }
+
+    public BaseResponse<?> verifyUniqueUserName(String userName) {
+        if (userName == null)
+            throw new ApiException("11", "Username is required", null);
+
+        boolean exists = userRepository.existsByUserName(userName);
+
+        if (!exists) {
+            return new BaseResponse<>("00", "Username is valid", null);
+        } else {
+            return new BaseResponse<>("55", "Username is already in use", null);
+        }
+    }
+
     @Transactional
     public BaseResponse<?> completeUserSignup(UserCompleteSignUpRequest request) {
         if  (request == null)
