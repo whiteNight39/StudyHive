@@ -37,7 +37,7 @@ import java.util.regex.Pattern;
 public class UserService {
 
     private final EmailService emailService;
-    private final ResendService resendService;
+//    private final ResendService resendService;
     private final MailGunService mailGunService;
 
     private final UserMapper userMapper;
@@ -54,7 +54,7 @@ public class UserService {
 
     public UserService(EmailService emailService, ResendService resendService, MailGunService mailGunService, UserMapper userMapper, UserRepository userRepository, UserOtpRepository userOtpRepository, UserLoginJwtRepository userLoginJwtRepository, JwtUtil jwtUtil, RoleRepository roleRepository) {
         this.emailService = emailService;
-        this.resendService = resendService;
+//        this.resendService = resendService;
         this.mailGunService = mailGunService;
         this.userMapper = userMapper;
         this.userRepository = userRepository;
@@ -143,7 +143,7 @@ public class UserService {
         userOtpRepository.save(userOtp);
         System.out.println("User Otp has been saved");
 
-        resendService.sendEnrollmentEmail(userEmail, otp);
+        mailGunService.sendEnrollmentEmail(userEmail, otp);
         System.out.println("User Otp has been sent to send email");
 
         return new BaseResponse<>("00","OTP has been sent", null);
@@ -358,9 +358,7 @@ public class UserService {
 
         userOtpRepository.save(userOtp);
 
-        emailService.sendEmail(request.getUserEmail(),
-                emailService.MSG_PASSWORD_RESET_TITLE,
-                String.format(emailService.MSG_PASSWORD_RESET_BODY, otp));
+        mailGunService.sendPasswordResetEmail(request.getUserEmail(), otp);
 
         return new BaseResponse<>("00", "Password reset OTP sent", null);
     }
