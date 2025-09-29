@@ -95,8 +95,8 @@ public class UserController {
 
         ResponseCookie cookie = ResponseCookie.from("jwt", jwToken)
                 .httpOnly(true)
-                .secure(false)            // must stay true for SameSite=None
-                .sameSite("Lax")        // ✅ change from Strict → None
+                .secure(true)         // ✅ Change back to true for HTTPS
+                .sameSite("None")     // ✅ Change back to None for cross-site
                 .path("/")
                 .maxAge(60 * 60)
                 .build();

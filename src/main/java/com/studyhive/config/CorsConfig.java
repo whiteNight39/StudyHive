@@ -16,12 +16,12 @@ public class CorsConfig {
             public void addCorsMappings(@NotNull CorsRegistry registry) {
                 registry.addMapping("/**")
                         .allowedOrigins(
-                                "https://studyhive-fe-tkfe.onrender.com",  // ✅ Your frontend on Render
-                                "http://127.0.0.1:5500"                    // ✅ Your local development
+                                "https://studyhive-fe-tkfe.onrender.com",
+                                "https://127.0.0.1:5500"  // ✅ Change to HTTPS
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                         .allowedHeaders("*")
-                        .exposedHeaders("Authorization")
+                        .exposedHeaders("Set-Cookie")  // ✅ Changed from "Authorization"
                         .allowCredentials(true);
             }
         };
