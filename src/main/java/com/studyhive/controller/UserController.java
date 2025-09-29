@@ -78,7 +78,7 @@ public class UserController {
     }
 
     @PostMapping("/login-user")
-    public ResponseEntity<BaseResponse<?>> loginUser(
+    public BaseResponse<?> loginUser(
             @Valid @RequestBody UserLogInRequest request, HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
 
         String ip = servletRequest.getHeader("X-Forwarded-For");
@@ -89,27 +89,56 @@ public class UserController {
         }
         String userAgent = servletRequest.getHeader("User-Agent");
 
-        BaseResponse<?> response = userService.logInUser(request, ip, userAgent);
+        //        String jwToken = (String) response.getResponseData();
+//
+//        ResponseCookie cookie = ResponseCookie.from("jwt", jwToken)
+//                .httpOnly(true)
+//                .secure(true)         // ✅ Change back to true for HTTPS
+//                .sameSite("None")     // ✅ Change back to None for cross-site
+//                .path("/")
+//                .maxAge(3 * 60 * 60)
+//                .build();
+//
+//        servletResponse.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+//
+//        response.setResponseData(null);
 
-        String jwToken = (String) response.getResponseData();
-
-        ResponseCookie cookie = ResponseCookie.from("jwt", jwToken)
-                .httpOnly(true)
-                .secure(true)         // ✅ Change back to true for HTTPS
-                .sameSite("None")     // ✅ Change back to None for cross-site
-                .path("/")
-                .maxAge(3 * 60 * 60)
-                .build();
-
-        servletResponse.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-
-        response.setResponseData(null);
-
-        return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookie.toString())
-                .body(response);
+        return userService.logInUser(request, ip, userAgent);
     }
 
+//    @PostMapping("/login-user")
+//    public ResponseEntity<BaseResponse<?>> loginUser(
+//            @Valid @RequestBody UserLogInRequest request, HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+//
+//        String ip = servletRequest.getHeader("X-Forwarded-For");
+//        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+//            ip = servletRequest.getRemoteAddr();
+//        } else {
+//            ip = ip.split(",")[0];  // Use the first IP if multiple are present
+//        }
+//        String userAgent = servletRequest.getHeader("User-Agent");
+//
+//        BaseResponse<?> response = userService.logInUser(request, ip, userAgent);
+//
+//        String jwToken = (String) response.getResponseData();
+//
+//        ResponseCookie cookie = ResponseCookie.from("jwt", jwToken)
+//                .httpOnly(true)
+//                .secure(true)         // ✅ Change back to true for HTTPS
+//                .sameSite("None")     // ✅ Change back to None for cross-site
+//                .path("/")
+//                .maxAge(3 * 60 * 60)
+//                .build();
+//
+//        servletResponse.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+//
+//        response.setResponseData(null);
+//
+//        return ResponseEntity.ok()
+//                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+//                .body(response);
+//    }
+//
     @PostMapping("/complete-user-profile")
     public BaseResponse<?> completeUserProfile(
             @Valid @RequestBody UserProfileCreateRequest request) {
