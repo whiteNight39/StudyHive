@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.Instant;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -14,4 +16,8 @@ public class UserLogInRequest {
     private String userEmail;
     private String userName;
     private String userPassword;
+    private String latitude;
+    private String longitude;
+    private Double accuracy;
+    private Instant timeStamp;
 }

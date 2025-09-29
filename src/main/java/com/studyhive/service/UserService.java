@@ -18,9 +18,11 @@ import com.studyhive.repository.interfaces.RoleRepository;
 import com.studyhive.repository.interfaces.UserLoginJwtRepository;
 import com.studyhive.repository.interfaces.UserOtpRepository;
 import com.studyhive.repository.interfaces.UserRepository;
+import com.studyhive.util.GeoUtils;
 import com.studyhive.util.TokenGenerator;
 import com.studyhive.util.exception.ApiException;
 import com.studyhive.util.jwt.JwtUtil;
+import lombok.Builder;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -29,10 +31,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class UserService {
@@ -49,6 +54,8 @@ public class UserService {
     private final JwtUtil jwtUtil;
 
     private final RoleRepository roleRepository;
+
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     private final String passwordPattern = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$";
     private final Pattern pattern = Pattern.compile(passwordPattern);
@@ -249,8 +256,64 @@ public class UserService {
             jwtToken = existingJwt.get().getUserLoginJwtToken();
         }
 
-        return new BaseResponse<>("00", "Log in successful", jwtToken);
+        // 🔹 Location check setup
+        double fixedLat = 6.6045038;
+        double fixedLon = 3.3840944;
+        double threshold = 200.0; // meters
+
+        double userLat = Double.parseDouble(request.getLatitude());
+        double userLon = Double.parseDouble(request.getLongitude());
+
+        double distance = GeoUtils.calculateDistance(fixedLat, fixedLon, userLat, userLon);
+
+        // Build loginInfo baseline (JWT only if login is still valid up to this point)
+        LoginInfo.LoginInfoBuilder loginInfoBuilder = LoginInfo.builder()
+                .jwToken(jwtToken)
+                .threshold(threshold)
+                .distanceFromClass(distance);
+
+        log.info("""
+        Login location check:
+          User [{}]
+          Current Position:    lat={}, lon={}
+          Lecture Location:    lat={}, lon={}
+          Distance:            {} meters
+          Allowed Threshold:   {} meters
+        """,
+                user.getUserEmail(),
+                request.getLatitude(), request.getLongitude(),
+                fixedLat, fixedLon,
+                distance, threshold
+        );
+
+
+// 🔹 Timestamp freshness check
+        Duration duration = Duration.between(request.getTimeStamp(), Instant.now());
+        if (duration.toMinutes() > 5) {
+            LoginInfo loginInfo = loginInfoBuilder.locationVerified(false).build();
+            throw new ApiException("66", "You have passed the time limit to check in", loginInfo);
+        }
+
+// 🔹 Distance check
+        if (distance > threshold) {
+            LoginInfo loginInfo = loginInfoBuilder.locationVerified(false).build();
+            throw new ApiException("77", "You are too far from the required location", loginInfo);
+        }
+
+// ✅ If all good
+        LoginInfo loginInfo = loginInfoBuilder.locationVerified(true).build();
+
+        return new BaseResponse<>("00", "Log in successful", loginInfo);
     }
+
+    @Builder
+    static class LoginInfo {
+        public String jwToken;
+        public Double distanceFromClass;   // meters
+        public Double threshold;           // meters
+        public Boolean locationVerified;   // true/false
+    }
+
 
     public BaseResponse<?> completeUserProfile(UserProfileCreateRequest request) {
         if (request == null) {
