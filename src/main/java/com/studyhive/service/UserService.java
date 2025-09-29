@@ -257,8 +257,8 @@ public class UserService {
         }
 
         // 🔹 Location check setup
-        double fixedLat = 6.6045038;
-        double fixedLon = 3.3840944;
+        double fixedLat = 6.612612612612613;
+        double fixedLon = 3.373795729086234;
         double threshold = 200.0; // meters
 
         double userLat = Double.parseDouble(request.getLatitude());
