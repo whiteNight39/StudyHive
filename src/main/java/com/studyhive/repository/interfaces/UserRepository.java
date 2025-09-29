@@ -7,6 +7,7 @@ import com.studyhive.model.interfaces.UserGlobalProfileResponses;
 import com.studyhive.model.interfaces.UserProfileResponses;
 import com.studyhive.model.response.UserRoomProfileResponse;
 import com.studyhive.model.response.UserGlobalProfileResponse;
+import com.studyhive.model.response.UserRoomResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -53,6 +54,23 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     """)
     List<UserProfileResponses> userProfiles(@Param("userId") UUID userId);
 
+    @Query("""
+    SELECT
+        r.roomId AS userRoomsRoomId,
+        r.roomName AS userRoomsRoomName,
+        r.roomDescription AS userRoomsRoomDescription,
+        r.roomCreatedBy AS userRoomsRoomCreatedBy,
+        r.roomCreatedAt AS userRoomsRoomCreatedAt,
+        r.roomSize AS userRoomsRoomSize,
+        r.roomPrivacy AS userRoomsRoomPrivacy,
+        m.membershipRoleInRoom AS userRoomsRoomRole
+    FROM User u
+    LEFT JOIN Membership m ON m.membershipUser.userId = u.userId
+    LEFT JOIN Room r ON r.roomId = m.membershipRoom.roomId
+    WHERE u.userId = :userId
+    AND u.userStatus <> 'DELETED'
+    """)
+    List<UserRoomResponse> userRooms(@Param("userId") UUID userId);
 
     @Query("""
     SELECT

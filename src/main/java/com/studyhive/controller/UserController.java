@@ -205,6 +205,17 @@ public class UserController {
         return userService.viewUserPersonalProfile(principal.getUserId());
     }
 
+    @GetMapping("/view-user-rooms")
+    public BaseResponse<?> viewUserRooms() {
+
+        CustomUserPrincipal principal = (CustomUserPrincipal) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        return userService.viewUserRooms(principal.getUserId());
+    }
+
     @GetMapping("/search-user-profiles")
     public BaseResponse<?> searchUserProfiles(String searchQuery) {
 

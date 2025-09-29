@@ -13,6 +13,7 @@ import com.studyhive.model.response.BaseResponse;
 import com.studyhive.model.response.UserGlobalProfileResponse;
 import com.studyhive.model.response.UserProfileResponse;
 import com.studyhive.model.interfaces.UserProfileResponses;
+import com.studyhive.model.response.UserRoomResponse;
 import com.studyhive.repository.interfaces.RoleRepository;
 import com.studyhive.repository.interfaces.UserLoginJwtRepository;
 import com.studyhive.repository.interfaces.UserOtpRepository;
@@ -458,6 +459,16 @@ public class UserService {
                 .build();
 
         return new BaseResponse<>("00", "User personal profile", userProfileResponse);
+    }
+
+    public BaseResponse<?> viewUserRooms(UUID userId) {
+
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
+                .orElseThrow(() -> new ApiException("44", "User not found", null));
+
+        List<UserRoomResponse> userRoomResponses = userRepository.userRooms(userId);
+
+        return new BaseResponse<>("00", "User rooms", userRoomResponses);
     }
 
     public BaseResponse<?> searchUserProfiles(String searchQuery, UUID userId) {
