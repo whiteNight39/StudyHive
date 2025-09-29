@@ -89,7 +89,7 @@ public class UserController {
         }
         String userAgent = servletRequest.getHeader("User-Agent");
 
-        //        String jwToken = (String) response.getResponseData();
+//                String jwToken = (String) response.getResponseData();
 //
 //        ResponseCookie cookie = ResponseCookie.from("jwt", jwToken)
 //                .httpOnly(true)

@@ -17,7 +17,8 @@ public class CorsConfig {
                 registry.addMapping("/**")
                         .allowedOrigins(
                                 "https://studyhive-fe-tkfe.onrender.com",
-                                "https://127.0.0.1:5500"  // ✅ Change to HTTPS
+                                "https://127.0.0.1:5500",  // ✅ Change to HTTPS
+                                "http://127.0.0.1:5500"  // ✅ Change to HTTP
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                         .allowedHeaders("*")

@@ -286,7 +286,6 @@ public class UserService {
                 distance, threshold
         );
 
-
 // 🔹 Timestamp freshness check
         Duration duration = Duration.between(request.getTimeStamp(), Instant.now());
         if (duration.toMinutes() > 5) {
