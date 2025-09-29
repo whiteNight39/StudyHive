@@ -98,7 +98,7 @@ public class UserController {
                 .secure(true)         // ✅ Change back to true for HTTPS
                 .sameSite("None")     // ✅ Change back to None for cross-site
                 .path("/")
-                .maxAge(60 * 60)
+                .maxAge(3 * 60 * 60)
                 .build();
 
         servletResponse.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
