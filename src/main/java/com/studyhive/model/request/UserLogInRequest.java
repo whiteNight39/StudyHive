@@ -16,8 +16,4 @@ public class UserLogInRequest {
     private String userEmail;
     private String userName;
     private String userPassword;
-    private String latitude;
-    private String longitude;
-    private Double accuracy;
-    private Instant timeStamp;
 }

@@ -23,6 +23,7 @@ import com.studyhive.util.TokenGenerator;
 import com.studyhive.util.exception.ApiException;
 import com.studyhive.util.jwt.JwtUtil;
 import lombok.Builder;
+import lombok.Data;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -256,21 +257,36 @@ public class UserService {
             jwtToken = existingJwt.get().getUserLoginJwtToken();
         }
 
+        return new BaseResponse<>("00", "Log in successful", jwtToken);
+    }
+
+    @Data
+    @Builder
+    static class LocationInfo {
+        public Double distanceFromClass;   // meters
+        public Double threshold;           // meters
+        public Boolean locationVerified;   // true/false
+    }
+
+    public BaseResponse<?> confirmLocation(LocationConfirmRequest request, UUID userID) {
+
+        User user = userRepository.getByUserIdAndUserStatus(userID, "ACTIVE")
+                .orElseThrow(() -> new ApiException("44", "User not found", null));
+
         // 🔹 Location check setup
-        double fixedLat = 6.612612612612613;
-        double fixedLon = 3.373795729086234;
+        double fixedLat = request.getFixedLatitude();
+        double fixedLon = request.getFixedLongitude();
         double threshold = 200.0; // meters
 
-        double userLat = Double.parseDouble(request.getLatitude());
-        double userLon = Double.parseDouble(request.getLongitude());
+        double userLat = request.getCurrentLatitude();
+        double userLon = request.getCurrentLongitude();
 
         double distance = GeoUtils.calculateDistance(fixedLat, fixedLon, userLat, userLon);
 
-        // Build loginInfo baseline (JWT only if login is still valid up to this point)
-        LoginInfo.LoginInfoBuilder loginInfoBuilder = LoginInfo.builder()
-                .jwToken(jwtToken)
+        LocationInfo locationInfo = LocationInfo.builder()
                 .threshold(threshold)
-                .distanceFromClass(distance);
+                .distanceFromClass(distance)
+                .build();
 
         log.info("""
         Login location check:
@@ -281,38 +297,29 @@ public class UserService {
           Allowed Threshold:   {} meters
         """,
                 user.getUserEmail(),
-                request.getLatitude(), request.getLongitude(),
+                userLat, userLon,
                 fixedLat, fixedLon,
                 distance, threshold
         );
 
-// 🔹 Timestamp freshness check
-        Duration duration = Duration.between(request.getTimeStamp(), Instant.now());
+        // 🔹 Timestamp freshness check
+        Duration duration = Duration.between(request.getTimeStampLocationCheck(), request.getTimeStampLoggedIn());
         if (duration.toMinutes() > 5) {
-            LoginInfo loginInfo = loginInfoBuilder.locationVerified(false).build();
-            throw new ApiException("66", "You have passed the time limit to check in", loginInfo);
+            locationInfo.setLocationVerified(false);
+            return new BaseResponse<>("66", "You have passed the time limit to check in", locationInfo);
         }
 
-// 🔹 Distance check
+        // 🔹 Distance check
         if (distance > threshold) {
-            LoginInfo loginInfo = loginInfoBuilder.locationVerified(false).build();
-            throw new ApiException("77", "You are too far from the required location", loginInfo);
+            locationInfo.setLocationVerified(false);
+            return new BaseResponse<>("77", "You are too far from the required location", locationInfo);
         }
 
-// ✅ If all good
-        LoginInfo loginInfo = loginInfoBuilder.locationVerified(true).build();
+        // ✅ If all good
+        locationInfo.setLocationVerified(true);
 
-        return new BaseResponse<>("00", "Log in successful", loginInfo);
+        return new BaseResponse<>("00", "Location confirmation result", locationInfo);
     }
-
-    @Builder
-    static class LoginInfo {
-        public String jwToken;
-        public Double distanceFromClass;   // meters
-        public Double threshold;           // meters
-        public Boolean locationVerified;   // true/false
-    }
-
 
     public BaseResponse<?> completeUserProfile(UserProfileCreateRequest request) {
         if (request == null) {

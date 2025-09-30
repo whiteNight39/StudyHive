@@ -79,7 +79,9 @@ public class UserController {
 
     @PostMapping("/login-user")
     public BaseResponse<?> loginUser(
-            @Valid @RequestBody UserLogInRequest request, HttpServletRequest servletRequest, HttpServletResponse servletResponse) {
+            @Valid @RequestBody UserLogInRequest request,
+            HttpServletRequest servletRequest,
+            HttpServletResponse servletResponse) {
 
         String ip = servletRequest.getHeader("X-Forwarded-For");
         if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
@@ -104,6 +106,18 @@ public class UserController {
 //        response.setResponseData(null);
 
         return userService.logInUser(request, ip, userAgent);
+    }
+
+    @PostMapping("/confirm-user-location")
+    public BaseResponse<?> confirmLocation(
+            @Valid @RequestBody LocationConfirmRequest request) {
+
+        CustomUserPrincipal principal = (CustomUserPrincipal) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        return userService.confirmLocation(request, principal.getUserId());
     }
 
 //    @PostMapping("/login-user")
