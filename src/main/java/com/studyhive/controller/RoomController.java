@@ -236,4 +236,16 @@ public class RoomController {
 
         return roomService.viewRoom(principal.getUserId(), roomId);
     }
+
+    @GetMapping("/search-rooms")
+    public BaseResponse<?> searchRoomByRoomName(
+            @Valid @RequestParam String searchQuery) {
+
+        CustomUserPrincipal principal = (CustomUserPrincipal) SecurityContextHolder
+                .getContext()
+                .getAuthentication()
+                .getPrincipal();
+
+        return roomService.searchRoomByRoomName(searchQuery, principal.getUserId());
+    }
 }

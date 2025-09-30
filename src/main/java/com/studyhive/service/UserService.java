@@ -541,8 +541,8 @@ public class UserService {
     }
 
     public BaseResponse<?> searchUserProfiles(String searchQuery, UUID userId) {
-        if (searchQuery == null) {
-            throw new ApiException("11", "Search query cannot be null", null);
+        if (searchQuery == null || searchQuery.trim().isEmpty()) {
+            throw new ApiException("11", "Search query cannot be empty", null);
         }
 
         User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")

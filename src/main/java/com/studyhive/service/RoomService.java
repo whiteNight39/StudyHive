@@ -5,6 +5,7 @@ import com.studyhive.model.entity.Room;
 import com.studyhive.model.entity.User;
 import com.studyhive.model.enums.RoleInRoom;
 import com.studyhive.model.enums.RoomPrivacy;
+import com.studyhive.model.interfaces.SearchRoom;
 import com.studyhive.model.request.RoomCreateRequest;
 import com.studyhive.model.request.RoomUpdateRequest;
 import com.studyhive.model.response.BaseResponse;
@@ -682,6 +683,22 @@ public class RoomService {
         }
 
         return new BaseResponse<>("00", "Room", room);
+    }
+
+    public BaseResponse<?> searchRoomByRoomName(String searchQuery, UUID userId) {
+        if (userId == null) {
+            throw new ApiException("11", "User ID cannot be null", null);
+        }
+        if (searchQuery == null || searchQuery.trim().isEmpty()) {
+            throw new ApiException("11", "Search Query cannot be null", null);
+        }
+
+        User user = userRepository.getByUserIdAndUserStatus(userId, "ACTIVE")
+                .orElseThrow(() -> new ApiException("44", "User not found", null));
+
+        List<SearchRoom> rooms = roomRepository.searchRoomByRoomName(searchQuery, userId);
+
+        return new BaseResponse<>("00", "Search Room", rooms);
     }
 
     private boolean isNotOwnerOrAdmin(Membership membership) {

@@ -231,7 +231,8 @@ public class UserController {
     }
 
     @GetMapping("/search-user-profiles")
-    public BaseResponse<?> searchUserProfiles(String searchQuery) {
+    public BaseResponse<?> searchUserProfiles(
+            @Valid @RequestParam String searchQuery) {
 
         CustomUserPrincipal principal = (CustomUserPrincipal) SecurityContextHolder
                 .getContext()
