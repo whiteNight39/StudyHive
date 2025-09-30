@@ -303,7 +303,7 @@ public class UserService {
         );
 
         // 🔹 Timestamp freshness check
-        Duration duration = Duration.between(request.getTimeStampLocationCheck(), request.getTimeStampLoggedIn());
+        Duration duration = Duration.between(request.getTimeStampLoggedIn(), request.getTimeStampLocationCheck());
         if (duration.toMinutes() > 5) {
             locationInfo.setLocationVerified(false);
             return new BaseResponse<>("66", "You have passed the time limit to check in", locationInfo);
